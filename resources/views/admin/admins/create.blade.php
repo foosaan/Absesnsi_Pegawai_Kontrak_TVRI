@@ -18,6 +18,14 @@
                     </div>
 
                     <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">NIP</label>
+                        <input type="text" name="nip" value="{{ old('nip') }}"
+                               class="border rounded w-full py-2 px-3 text-gray-700 @error('nip') border-red-500 @enderror"
+                               placeholder="Nomor Induk Pegawai">
+                        @error('nip')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="mb-4">
                         <label class="block text-sm font-bold text-gray-700 mb-1">Email</label>
                         <input type="email" name="email" value="{{ old('email') }}" required
                                class="border rounded w-full py-2 px-3 text-gray-700 @error('email') border-red-500 @enderror"

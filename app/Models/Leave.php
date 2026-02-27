@@ -15,6 +15,7 @@ class Leave extends Model
         'start_date',
         'end_date',
         'reason',
+        'attachment',
         'type',
         'status',
         'approved_by',
@@ -50,7 +51,7 @@ class Leave extends Model
         return match($this->type) {
             'cuti_tahunan' => 'Cuti Tahunan',
             'sakit' => 'Sakit',
-            'izin' => 'Izin',
+            'alasan_penting' => 'Alasan Penting',
             'lainnya' => 'Lainnya',
             default => $this->type,
         };
@@ -74,7 +75,7 @@ class Leave extends Model
      */
     public function getTotalDaysAttribute(): int
     {
-        return $this->start_date->diffInDays($this->end_date) + 1;
+        return (int) $this->start_date->diffInDays($this->end_date) + 1;
     }
 
     /**

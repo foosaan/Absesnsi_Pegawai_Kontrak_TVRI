@@ -1,72 +1,91 @@
-<x-app-layout>
+<x-app-layout title="Pengumuman">
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800">Pengumuman</h2>
-            <a href="{{ route('staff.psdm.announcements.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-                + Tambah Pengumuman
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900">
+                    <i class="fas fa-bullhorn text-red-600 dark:text-red-400"></i>
+                </div>
+                <div>
+                    <h1 class="page-title dark:page-title-dark">Pengumuman</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Kelola informasi penting untuk pegawai
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('staff.psdm.announcements.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>Buat Pengumuman</span>
             </a>
         </div>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
-            
-            @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            <div class="bg-white rounded-lg shadow">
-                @forelse($announcements as $announcement)
-                <div class="p-5 border-b last:border-b-0 {{ !$announcement->is_active ? 'bg-gray-50 opacity-60' : '' }}">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h3 class="font-bold text-lg">{{ $announcement->title }}</h3>
-                                @if(!$announcement->is_active)
-                                    <span class="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded">Non-aktif</span>
-                                @else
-                                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Aktif</span>
-                                @endif
-                            </div>
-                            <p class="text-gray-600 text-sm mb-2">{{ $announcement->content }}</p>
-                            <p class="text-xs text-gray-400">
-                                Oleh: {{ $announcement->creator->name ?? 'Unknown' }} • 
-                                {{ $announcement->created_at->format('d M Y H:i') }}
-                            </p>
+    <div class="grid gap-6">
+        @forelse($announcements as $announcement)
+        <div class="card dark:card-dark {{ !$announcement->is_active ? 'opacity-75' : '' }}">
+            <div class="card-body">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            @if(!$announcement->is_active)
+                                <span class="badge badge-secondary">Non-Aktif</span>
+                            @endif
+                            <h3 class="font-semibold text-lg text-gray-900 dark:text-white">
+                                {{ $announcement->title }}
+                            </h3>
                         </div>
-                        <div class="flex gap-2 ml-4">
-                            <form action="{{ route('staff.psdm.announcements.toggle', $announcement) }}" method="POST">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit" class="text-sm px-3 py-1 rounded {{ $announcement->is_active ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200' }}">
-                                    {{ $announcement->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-                                </button>
-                            </form>
-                            <form action="{{ route('staff.psdm.announcements.delete', $announcement) }}" method="POST" 
-                                  onsubmit="return confirm('Yakin ingin menghapus pengumuman ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-sm px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">
-                                    Hapus
-                                </button>
-                            </form>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                            Diposting oleh <span class="font-medium text-gray-700 dark:text-gray-300">{{ $announcement->creator->name ?? 'Admin' }}</span>
+                            &bull; {{ $announcement->created_at->diffForHumans() }}
+                        </p>
+                        <div class="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 text-sm">
+                            {!! nl2br(e($announcement->content)) !!}
                         </div>
                     </div>
+                    
+                    <div class="flex flex-col gap-2">
+                        <a href="{{ route('staff.psdm.announcements.edit', $announcement) }}" 
+                           class="btn btn-sm btn-secondary btn-icon" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="{{ route('staff.psdm.announcements.toggle', $announcement) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="btn btn-sm {{ $announcement->is_active ? 'btn-warning' : 'btn-success' }} btn-icon"
+                                    title="{{ $announcement->is_active ? 'Non-aktifkan' : 'Aktifkan' }}">
+                                <i class="fas {{ $announcement->is_active ? 'fa-eye-slash' : 'fa-eye' }}"></i>
+                            </button>
+                        </form>
+                        <form action="{{ route('staff.psdm.announcements.delete', $announcement) }}" method="POST"
+                              data-confirm="Hapus pengumuman ini?" data-confirm-title="Konfirmasi Hapus">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                @empty
-                <div class="p-8 text-center text-gray-400">
-                    Belum ada pengumuman
-                </div>
-                @endforelse
-                
-                @if($announcements->hasPages())
-                <div class="p-4 border-t">
-                    {{ $announcements->links() }}
-                </div>
-                @endif
             </div>
+        </div>
+        @empty
+        <div class="card dark:card-dark py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+                <div class="bg-gray-100 dark:bg-slate-700 rounded-full h-16 w-16 flex items-center justify-center mb-4">
+                    <i class="fas fa-bullhorn text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Belum ada pengumuman</h3>
+                <p class="text-gray-500 dark:text-gray-400 max-w-sm mt-1">
+                    Buat pengumuman baru untuk memberitahu informasi penting kepada pegawai.
+                </p>
+                <a href="{{ route('staff.psdm.announcements.create') }}" class="btn btn-primary mt-4">
+                    <i class="fas fa-plus"></i> Buat Pengumuman
+                </a>
+            </div>
+        </div>
+        @endforelse
+
+        <div class="mt-4">
+            {{ $announcements->links() }}
         </div>
     </div>
 </x-app-layout>

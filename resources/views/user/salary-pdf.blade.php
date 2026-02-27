@@ -109,12 +109,20 @@
             <span class="info-value">: {{ $salary->user->name }}</span>
         </div>
         <div class="info-row">
-            <span class="info-label">GOLONGAN</span>
-            <span class="info-value">: {{ $salary->user->status_pegawai ?? '-' }}</span>
-        </div>
-        <div class="info-row">
             <span class="info-label">NIP</span>
             <span class="info-value">: {{ $salary->user->nip ?? '-' }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">JABATAN</span>
+            <span class="info-value">: {{ $salary->user->jabatan ?? '-' }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">BAGIAN</span>
+            <span class="info-value">: {{ $salary->user->bagian ?? '-' }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">STATUS</span>
+            <span class="info-value">: {{ $salary->user->status_pegawai ?? '-' }} / {{ $salary->user->status_operasional ?? '-' }}</span>
         </div>
     </div>
 
@@ -151,36 +159,18 @@
     <div class="section">
         <div class="section-title">POTONGAN INTERN</div>
         <table>
-            <tr>
-                <td>Simpanan Wajib</td>
-                <td class="text-center">:</td>
-                <td class="text-right">Rp</td>
-                <td class="text-right" style="width: 100px;">{{ number_format($salary->simpanan_wajib, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td>Kredit Uang</td>
-                <td class="text-center">:</td>
-                <td class="text-right">Rp</td>
-                <td class="text-right">{{ number_format($salary->kredit_uang, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td>Kredit Toko</td>
-                <td class="text-center">:</td>
-                <td class="text-right">Rp</td>
-                <td class="text-right">{{ number_format($salary->kredit_toko, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td>Dharma Wanita</td>
-                <td class="text-center">:</td>
-                <td class="text-right">Rp</td>
-                <td class="text-right">{{ number_format($salary->dharma_wanita, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td>BPJS</td>
-                <td class="text-center">:</td>
-                <td class="text-right">Rp</td>
-                <td class="text-right">{{ number_format($salary->bpjs, 0, ',', '.') }}</td>
-            </tr>
+            @foreach($deductionTypes as $type)
+                @php
+                    $deduction = $salary->salaryDeductions->firstWhere('deduction_type_id', $type->id);
+                    $amount = $deduction ? $deduction->amount : 0;
+                @endphp
+                <tr>
+                    <td>{{ $type->name }}</td>
+                    <td class="text-center">:</td>
+                    <td class="text-right">Rp</td>
+                    <td class="text-right">{{ number_format($amount, 0, ',', '.') }}</td>
+                </tr>
+            @endforeach
             <tr class="total-row">
                 <td class="bold">Jumlah Potongan Intern</td>
                 <td class="text-center">:</td>
@@ -201,12 +191,28 @@
         </table>
     </div>
 
-    <div class="footer">
-        <p>Yogyakarta, {{ now()->format('d F Y') }}</p>
-        <p>PPABP</p>
-        <div class="signature">
-            <p>____________________</p>
-        </div>
-    </div>
+    <table style="width: 100%; margin-top: 30px;">
+        <tr>
+            <td style="width: 55%;"></td>
+            <td style="width: 45%; text-align: center; font-size: 12px;">
+                <p>Yogyakarta, {{ $salary->signed_at ? $salary->signed_at->format('d F Y') : now()->format('d F Y') }}</p>
+                <p style="font-weight: bold; margin-top: 3px;">PPABP</p>
+                <br>
+                @if($salary->isSigned() && $salary->signer && $salary->signer->signature)
+                    <p><img src="{{ public_path('storage/' . $salary->signer->signature) }}" width="60"></p>
+                @else
+                    <br><br>
+                @endif
+                <p style="font-weight: bold; text-decoration: underline;">
+                    @if($salary->isSigned() && $salary->signer)
+                        {{ $salary->signer->name }}
+                    @else
+                        ____________________
+                    @endif
+                </p>
+            </td>
+        </tr>
+    </table>
+
 </body>
 </html>

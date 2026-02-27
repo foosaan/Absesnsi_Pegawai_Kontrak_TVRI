@@ -12,12 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Update role enum to include staff roles
-        // First, change existing 'admin' users to keep their role
-        // Then alter the column
-
-        // Drop the enum constraint and recreate with new values
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'staff_psdm', 'staff_keuangan', 'user') DEFAULT 'user'");
+        // Only run on MySQL/MariaDB — SQLite doesn't support MODIFY COLUMN + ENUM
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'staff_psdm', 'staff_keuangan', 'user') DEFAULT 'user'");
+        }
     }
 
     /**
@@ -25,7 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert to original enum values
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'user') DEFAULT 'user'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'user') DEFAULT 'user'");
+        }
     }
 };

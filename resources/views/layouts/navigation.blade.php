@@ -30,6 +30,9 @@
                         <x-nav-link :href="route('user.leaves')" :active="request()->routeIs('user.leaves*')">
                             {{ __('Cuti') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('user.business-trips')" :active="request()->routeIs('user.business-trips*')">
+                            {{ __('Dinas Luar') }}
+                        </x-nav-link>
                     
                     @elseif(Auth::user()->role === 'staff_psdm')
                         {{-- Staff PSDM Menu --}}
@@ -51,17 +54,14 @@
                         <x-nav-link :href="route('staff.keuangan.dashboard')" :active="request()->routeIs('staff.keuangan.dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('staff.keuangan.users')" :active="request()->routeIs('staff.keuangan.users*')">
-                            {{ __('Data Karyawan') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('staff.keuangan.salaries')" :active="request()->routeIs('staff.keuangan.salaries')">
-                            {{ __('Data Gaji') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('staff.keuangan.salaries.input')" :active="request()->routeIs('staff.keuangan.salaries.input')">
+                        <x-nav-link :href="route('staff.keuangan.users')" :active="request()->routeIs('staff.keuangan.users*') || request()->routeIs('staff.keuangan.salaries.input*') || request()->routeIs('staff.keuangan.salaries.import*')">
                             {{ __('Input Gaji') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('staff.keuangan.salaries.import.form')" :active="request()->routeIs('staff.keuangan.salaries.import*')">
-                            {{ __('Import Excel') }}
+                        <x-nav-link :href="route('staff.keuangan.salaries')" :active="request()->routeIs('staff.keuangan.salaries') && !request()->routeIs('staff.keuangan.salaries.input*') && !request()->routeIs('staff.keuangan.salaries.import*')">
+                            {{ __('Data Gaji') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('staff.keuangan.deductions.index')" :active="request()->routeIs('staff.keuangan.deductions*')">
+                            {{ __('Jenis Potongan') }}
                         </x-nav-link>
                     
                     @elseif(Auth::user()->role === 'admin')
@@ -75,8 +75,11 @@
                         <x-nav-link :href="route('admin.admins')" :active="request()->routeIs('admin.admins*')">
                             {{ __('Kelola Admin') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('attendance.index')" :active="request()->routeIs('attendance.index')">
-                            {{ __('Absensi') }}
+                        <x-nav-link :href="route('admin.monitor')" :active="request()->routeIs('admin.monitor')">
+                            {{ __('Monitor') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.leaves')" :active="request()->routeIs('admin.leaves')">
+                            {{ __('Cuti') }}
                         </x-nav-link>
                     @endif
 
@@ -154,6 +157,9 @@
                 <x-responsive-nav-link :href="route('user.leaves')" :active="request()->routeIs('user.leaves*')">
                     {{ __('Cuti') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('user.business-trips')" :active="request()->routeIs('user.business-trips*')">
+                    {{ __('Dinas Luar') }}
+                </x-responsive-nav-link>
             
             @elseif(Auth::user()->role === 'staff_psdm')
                 <x-responsive-nav-link :href="route('staff.psdm.dashboard')" :active="request()->routeIs('staff.psdm.dashboard')">
@@ -173,14 +179,14 @@
                 <x-responsive-nav-link :href="route('staff.keuangan.dashboard')" :active="request()->routeIs('staff.keuangan.dashboard')">
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('staff.keuangan.users')" :active="request()->routeIs('staff.keuangan.users*')">
-                    {{ __('Data Karyawan') }}
+                <x-responsive-nav-link :href="route('staff.keuangan.users')" :active="request()->routeIs('staff.keuangan.users*') || request()->routeIs('staff.keuangan.salaries.input*')">
+                    {{ __('Input Gaji') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('staff.keuangan.salaries')" :active="request()->routeIs('staff.keuangan.salaries')">
                     {{ __('Data Gaji') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('staff.keuangan.salaries.input')" :active="request()->routeIs('staff.keuangan.salaries.input')">
-                    {{ __('Input Gaji') }}
+                <x-responsive-nav-link :href="route('staff.keuangan.deductions.index')" :active="request()->routeIs('staff.keuangan.deductions*')">
+                    {{ __('Jenis Potongan') }}
                 </x-responsive-nav-link>
             
             @elseif(Auth::user()->role === 'admin')
@@ -193,8 +199,11 @@
                 <x-responsive-nav-link :href="route('admin.admins')" :active="request()->routeIs('admin.admins*')">
                     {{ __('Kelola Admin') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('attendance.index')" :active="request()->routeIs('attendance.index')">
-                    {{ __('Absensi') }}
+                <x-responsive-nav-link :href="route('admin.monitor')" :active="request()->routeIs('admin.monitor')">
+                    {{ __('Monitor') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.leaves')" :active="request()->routeIs('admin.leaves')">
+                    {{ __('Cuti') }}
                 </x-responsive-nav-link>
             @endif
 

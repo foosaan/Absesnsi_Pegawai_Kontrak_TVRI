@@ -22,11 +22,11 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'employee_type',
         'attendance_type',
         'profile_photo',
         // Profile fields
         'nip',
+        'nik',
         'npwp',
         'status_pegawai',
         'nomor_sk',
@@ -39,6 +39,10 @@ class User extends Authenticatable
         'no_telepon',
         'tanggal_lahir',
         'jenis_kelamin',
+        'jabatan',
+        'bagian',
+        'status_operasional',
+        'signature',
     ];
 
     /**
@@ -81,22 +85,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is OB (Office Boy) - legacy, not used for attendance anymore
-     */
-    public function isOB(): bool
-    {
-        return $this->employee_type === 'ob';
-    }
-
-    /**
-     * Check if user is Satpam (Security)
-     */
-    public function isSatpam(): bool
-    {
-        return $this->employee_type === 'satpam';
-    }
-
-    /**
      * Check if user is Admin
      */
     public function isAdmin(): bool
@@ -105,15 +93,19 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the display name for employee type
+     * Check if user is Satpam
      */
-    public function getEmployeeTypeLabel(): string
+    public function isSatpam(): bool
     {
-        return match($this->employee_type) {
-            'ob' => 'Office Boy',
-            'satpam' => 'Satpam',
-            default => 'Karyawan',
-        };
+        return $this->jabatan === 'Satpam';
+    }
+
+    /**
+     * Check if user is OB
+     */
+    public function isOB(): bool
+    {
+        return $this->jabatan === 'OB' || $this->jabatan === 'Office Boy';
     }
 
     /**
@@ -138,7 +130,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'tanggal_sk' => 'date',
             'tanggal_lahir' => 'date',
-            'gaji_pokok' => 'decimal:2',
+            'gaji_pokok' => 'integer',
         ];
     }
 }

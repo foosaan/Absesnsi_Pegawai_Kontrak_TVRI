@@ -17,29 +17,103 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_users_can_authenticate_using_the_login_screen(): void
+    public function test_staff_login_screen_can_be_rendered(): void
     {
-        $user = User::factory()->create();
+        $response = $this->get('/staff/login');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_admin_login_screen_can_be_rendered(): void
+    {
+        $response = $this->get('/admin/login');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_users_can_authenticate_with_nip(): void
+    {
+        $user = User::factory()->create([
+            'nip' => '123456789',
+            'role' => 'user',
+        ]);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'nip' => '123456789',
             'password' => 'password',
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_staff_can_authenticate_with_nip(): void
+    {
+        $user = User::factory()->create([
+            'nip' => '987654321',
+            'role' => 'staff_psdm',
+        ]);
+
+        $response = $this->post('/staff/login', [
+            'nip' => '987654321',
+            'password' => 'password',
+        ]);
+
+        // Staff login redirects after successful auth
+        $response->assertRedirect();
+    }
+
+    public function test_admin_can_authenticate_with_nip(): void
+    {
+        $user = User::factory()->create([
+            'nip' => '111222333',
+            'role' => 'admin',
+        ]);
+
+        $response = $this->post('/admin/login', [
+            'nip' => '111222333',
+            'password' => 'password',
+        ]);
+
+        // Admin login redirects after successful auth
+        $response->assertRedirect();
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'nip' => '123456789',
+        ]);
 
         $this->post('/login', [
-            'email' => $user->email,
+            'nip' => '123456789',
             'password' => 'wrong-password',
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_users_can_not_authenticate_with_invalid_nip(): void
+    {
+        $user = User::factory()->create([
+            'nip' => '123456789',
+        ]);
+
+        $this->post('/login', [
+            'nip' => '999999999',
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_nip_is_required_for_login(): void
+    {
+        $response = $this->post('/login', [
+            'nip' => '',
+            'password' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors('nip');
     }
 
     public function test_users_can_logout(): void

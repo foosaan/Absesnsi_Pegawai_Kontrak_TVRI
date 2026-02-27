@@ -1,52 +1,119 @@
-<x-guest-layout>
-    <form method="POST" action="{{ route('register') }}">
-        @csrf
+<x-guest-layout title="Register">
+    <div class="card">
+        <div class="card-body">
+            {{-- Header --}}
+            <div class="mb-6 text-center">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Daftar Akun</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Buat akun baru Anda</p>
+            </div>
 
-        <!-- Name -->
-        <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+            {{-- Validation Errors --}}
+            @if($errors->any())
+                <div class="notification notification-danger mb-6">
+                    <ul class="list-disc list-inside text-sm">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('register') }}">
+                @csrf
+
+                {{-- Name --}}
+                <div class="form-field">
+                    <label for="name" class="form-label">Nama Lengkap</label>
+                    <div class="relative">
+                        <span class="form-control-icon">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <input 
+                            id="name"
+                            type="text" 
+                            name="name" 
+                            value="{{ old('name') }}"
+                            class="form-control form-control-with-icon" 
+                            required 
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+                {{-- Email --}}
+                <div class="form-field">
+                    <label for="email" class="form-label">Email</label>
+                    <div class="relative">
+                        <span class="form-control-icon">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <input 
+                            id="email"
+                            type="email" 
+                            name="email" 
+                            value="{{ old('email') }}"
+                            class="form-control form-control-with-icon" 
+                            required 
+                        >
+                    </div>
+                </div>
+
+                {{-- Password --}}
+                <div class="form-field">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="relative" x-data="{ show: false }">
+                        <span class="form-control-icon">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input 
+                            id="password"
+                            :type="show ? 'text' : 'password'" 
+                            name="password" 
+                            class="form-control form-control-with-icon pr-10" 
+                            required 
+                        >
+                        <button type="button" @click="show = !show" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+                            <i :class="show ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Confirm Password --}}
+                <div class="form-field">
+                    <label for="password_confirmation" class="form-label">Konfirmasi Password</label>
+                    <div class="relative" x-data="{ show: false }">
+                        <span class="form-control-icon">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input 
+                            id="password_confirmation"
+                            :type="show ? 'text' : 'password'" 
+                            name="password_confirmation" 
+                            class="form-control form-control-with-icon pr-10" 
+                            required 
+                        >
+                        <button type="button" @click="show = !show" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+                            <i :class="show ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Submit Button --}}
+                <div class="form-field">
+                    <button type="submit" class="btn btn-primary w-full py-2.5">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Daftar</span>
+                    </button>
+                </div>
+
+                {{-- Login Link --}}
+                <div class="mt-4 text-center">
+                    <span class="text-sm text-gray-500 dark:text-slate-400">Sudah punya akun?</span>
+                    <a href="{{ route('login') }}" class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 ml-1">
+                        Masuk
+                    </a>
+                </div>
+            </form>
         </div>
-
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
-
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
-        </div>
-    </form>
+    </div>
 </x-guest-layout>

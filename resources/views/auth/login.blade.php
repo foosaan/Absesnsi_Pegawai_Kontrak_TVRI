@@ -1,47 +1,107 @@
-<x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+<x-guest-layout title="Login">
+    <div class="card">
+        <div class="card-body">
+            {{-- Header --}}
+            <div class="mb-6 text-center">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Selamat Datang</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Masuk ke akun Anda</p>
+            </div>
 
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
+            {{-- Session Status --}}
+            @if(session('status'))
+                <div class="notification notification-success mb-6">
+                    {{ session('status') }}
+                </div>
             @endif
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
+            {{-- Validation Errors --}}
+            @if($errors->any())
+                <div class="notification notification-danger mb-6">
+                    <ul class="list-disc list-inside text-sm">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('login') }}">
+                @csrf
+                <input type="hidden" name="login_type" value="user">
+
+                {{-- NIP --}}
+                <div class="form-field">
+                    <label for="nip" class="form-label">NIP</label>
+                    <div class="relative">
+                        <span class="form-control-icon">
+                            <i class="fas fa-id-card"></i>
+                        </span>
+                        <input 
+                            id="nip"
+                            type="text" 
+                            name="nip" 
+                            value="{{ old('nip') }}"
+                            class="form-control form-control-with-icon" 
+                            placeholder="Masukkan NIP Anda"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                            required 
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+                {{-- Password --}}
+                <div class="form-field">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="relative" x-data="{ show: false }">
+                        <span class="form-control-icon">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input 
+                            id="password"
+                            :type="show ? 'text' : 'password'" 
+                            name="password" 
+                            class="form-control form-control-with-icon pr-10" 
+                            placeholder="••••••••"
+                            required 
+                        >
+                        <button type="button" @click="show = !show" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+                            <i :class="show ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Remember Me --}}
+                <div class="form-field">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            name="remember" 
+                            class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700"
+                        >
+                        <span class="text-sm text-gray-600 dark:text-slate-300">Ingat saya</span>
+                    </label>
+                </div>
+
+                {{-- Submit Button --}}
+                <div class="form-field">
+                    <button type="submit" class="btn btn-primary w-full py-2.5">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Masuk</span>
+                    </button>
+                </div>
+
+                {{-- Links --}}
+                <div class="mt-4 flex flex-col items-center gap-2 text-sm">
+                    @if(Route::has('password.request'))
+                        <a href="{{ route('password.request') }}" class="text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                            Lupa password?
+                        </a>
+                    @endif
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 </x-guest-layout>

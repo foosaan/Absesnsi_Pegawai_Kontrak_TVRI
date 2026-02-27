@@ -1,75 +1,116 @@
-<x-app-layout>
+<x-app-layout title="Kalkulator Gaji">
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800">Hitung Gaji</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
+                    <i class="fas fa-calculator text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <div>
+                    <h1 class="page-title dark:page-title-dark">Kalkulator Gaji</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Hitung simulasi gaji karyawan
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('staff.keuangan.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid gap-6 lg:grid-cols-2">
+        <div class="card dark:card-dark h-fit">
+            <div class="card-header dark:card-header-dark">
+                <h3 class="font-semibold text-gray-900 dark:text-white">
+                    <i class="fas fa-params text-blue-500 mr-2"></i>
+                    Parameter Perhitungan
+                </h3>
+            </div>
+            <div class="card-body">
                 <form action="{{ route('staff.keuangan.calculate.process') }}" method="POST">
                     @csrf
                     
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Pilih Karyawan</label>
-                        <select name="user_id" required class="border rounded w-full py-2 px-3 text-gray-700 @error('user_id') border-red-500 @enderror">
-                            <option value="">-- Pilih Karyawan --</option>
+                    <div class="form-group">
+                        <label class="form-label">Pilih Karyawan (Opsional)</label>
+                        <select name="user_id" id="user_select" class="form-control">
+                            <option value="">-- Manual Input --</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                                    {{ $user->name }} ({{ strtoupper($user->employee_type ?? 'N/A') }})
+                                <option value="{{ $user->id }}" 
+                                        data-gaji="{{ $user->gaji_pokok }}"
+                                        data-jabatan="{{ $user->jabatan }}">
+                                    {{ $user->name }} - {{ $user->nip }}
                                 </option>
                             @endforeach
                         </select>
-                        @error('user_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <p class="text-xs text-gray-500 mt-1">Pilih karyawan untuk otomatis mengisi gaji pokok</p>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Bulan</label>
-                            <select name="month" required class="border rounded w-full py-2 px-3 text-gray-700">
-                                @for($m = 1; $m <= 12; $m++)
-                                    <option value="{{ $m }}" {{ old('month', $currentMonth) == $m ? 'selected' : '' }}>
-                                        {{ DateTime::createFromFormat('!m', $m)->format('F') }}
-                                    </option>
-                                @endfor
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Tahun</label>
-                            <select name="year" required class="border rounded w-full py-2 px-3 text-gray-700">
-                                @for($y = 2024; $y <= 2030; $y++)
-                                    <option value="{{ $y }}" {{ old('year', $currentYear) == $y ? 'selected' : '' }}>{{ $y }}</option>
-                                @endfor
-                            </select>
+                    <div class="form-group">
+                        <label class="form-label">Gaji Pokok</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
+                            <input type="number" name="base_salary" id="base_salary" 
+                                   class="form-control pl-10" required>
                         </div>
                     </div>
 
-                    <div class="mb-6">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Gaji Pokok (Rp)</label>
-                        <input type="number" name="base_salary" value="{{ old('base_salary', 3000000) }}" required
-                               class="border rounded w-full py-2 px-3 text-gray-700 @error('base_salary') border-red-500 @enderror"
-                               placeholder="Contoh: 3000000">
-                        @error('base_salary')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    <div class="form-group">
+                        <label class="form-label">Tunjangan (Total)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
+                            <input type="number" name="allowances" id="allowances" 
+                                   class="form-control pl-10" value="0">
+                        </div>
                     </div>
 
-                    <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
-                        <h4 class="font-bold text-blue-700 mb-2">ℹ️ Info Perhitungan:</h4>
-                        <ul class="text-sm text-blue-600 space-y-1">
-                            <li>• Potongan Terlambat: <strong>2%</strong> per hari</li>
-                            <li>• Potongan Absen: <strong>4%</strong> per hari</li>
-                            <li>• Gaji Akhir = Gaji Pokok - Total Potongan</li>
-                        </ul>
+                    <div class="form-group">
+                        <label class="form-label">Potongan (Total)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
+                            <input type="number" name="deductions" id="deductions" 
+                                   class="form-control pl-10" value="0">
+                        </div>
                     </div>
 
-                    <div class="flex gap-3">
-                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded">
-                            🧮 Hitung Gaji
-                        </button>
-                        <a href="{{ route('staff.keuangan.salaries') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-6 rounded">
-                            Batal
-                        </a>
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                            <div class="text-sm text-blue-800 dark:text-blue-200">
+                                <p class="font-medium">Tentang Kalkulator</p>
+                                <p>Tools ini hanya untuk simulasi perhitungan. Untuk menyimpan data gaji resmi, gunakan menu Input Gaji.</p>
+                            </div>
+                        </div>
                     </div>
+
+                    <button type="submit" class="btn btn-purple w-full justify-center bg-purple-600 text-white hover:bg-purple-700">
+                        <i class="fas fa-calculator"></i>
+                        <span>Hitung Sekarang</span>
+                    </button>
                 </form>
             </div>
         </div>
+
+        <div class="hidden lg:block">
+            <div class="card dark:card-dark h-full flex flex-col items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
+                <div class="w-32 h-32 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-chart-pie text-5xl opacity-50"></i>
+                </div>
+                <h3 class="text-xl font-medium text-gray-700 dark:text-gray-300 mb-2">Hasil Perhitungan</h3>
+                <p>Hasil perhitungan gaji akan muncul disini setelah Anda klik tombol Hitung.</p>
+            </div>
+        </div>
     </div>
+
+    @push('scripts')
+    <script>
+        document.getElementById('user_select').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const gaji = selectedOption.getAttribute('data-gaji');
+            if (gaji) {
+                document.getElementById('base_salary').value = gaji;
+            }
+        });
+    </script>
+    @endpush
 </x-app-layout>

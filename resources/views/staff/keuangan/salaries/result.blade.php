@@ -1,116 +1,75 @@
-<x-app-layout>
+<x-app-layout title="Hasil Perhitungan">
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800">Hasil Perhitungan Gaji</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900">
+                    <i class="fas fa-check-circle text-emerald-600 dark:text-emerald-400"></i>
+                </div>
+                <div>
+                    <h1 class="page-title dark:page-title-dark">Hasil Perhitungan</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Simulasi gaji karyawan
+                    </p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ route('staff.keuangan.calculate') }}" class="btn btn-secondary">
+                    <i class="fas fa-calculator"></i>
+                    <span>Hitung Ulang</span>
+                </a>
+            </div>
+        </div>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="card dark:card-dark overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-500 to-green-600 p-6 text-white text-center">
+                <p class="text-emerald-100 mb-2 uppercase tracking-wide text-xs font-bold">Total Gaji Bersih</p>
+                <h2 class="text-4xl font-bold mb-1">Rp {{ number_format($result['total'], 0, ',', '.') }}</h2>
+                <p class="text-emerald-100 text-sm">Estimasi diterima karyawan</p>
+            </div>
             
-            <!-- Info Karyawan -->
-            <div class="bg-white rounded-lg shadow p-6 mb-4">
-                <h3 class="font-bold text-lg mb-3">👤 Informasi Karyawan</h3>
-                <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="card-body p-0">
+                <div class="p-6 space-y-6">
                     <div>
-                        <span class="text-gray-500">Nama:</span>
-                        <span class="font-medium">{{ $user->name }}</span>
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-3">Pemasukan</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-700 dark:text-gray-300">Gaji Pokok</span>
+                                <span class="font-medium text-gray-900 dark:text-white">Rp {{ number_format($result['base'], 0, ',', '.') }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-700 dark:text-gray-300">Tunjangan</span>
+                                <span class="font-medium text-emerald-600 dark:text-emerald-400">+ Rp {{ number_format($result['allowances'], 0, ',', '.') }}</span>
+                            </div>
+                        </div>
                     </div>
+
+                    <hr class="dark:border-slate-700">
+
                     <div>
-                        <span class="text-gray-500">Tipe:</span>
-                        <span class="px-2 py-0.5 rounded text-xs {{ $user->employee_type === 'ob' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700' }}">
-                            {{ strtoupper($user->employee_type ?? 'N/A') }}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Email:</span>
-                        <span class="font-medium">{{ $user->email }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Periode:</span>
-                        <span class="font-medium">
-                            {{ DateTime::createFromFormat('!m', $calculation['month'])->format('F') }} {{ $calculation['year'] }}
-                        </span>
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-3">Pengeluaran</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-700 dark:text-gray-300">Potongan</span>
+                                <span class="font-medium text-red-600 dark:text-red-400">- Rp {{ number_format($result['deductions'], 0, ',', '.') }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Hasil Kalkulasi -->
-            <div class="bg-white rounded-lg shadow p-6 mb-4">
-                <h3 class="font-bold text-lg mb-4">📊 Detail Perhitungan</h3>
-                
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center py-2 border-b">
-                        <span class="text-gray-600">Hari Kerja (bulan ini)</span>
-                        <span class="font-medium">{{ $calculation['total_work_days'] }} hari</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2 border-b">
-                        <span class="text-gray-600">Hadir</span>
-                        <span class="font-medium text-green-600">{{ $calculation['days_present'] }} hari</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2 border-b">
-                        <span class="text-gray-600">Terlambat</span>
-                        <span class="font-medium text-yellow-600">{{ $calculation['total_late_days'] }} hari</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2 border-b">
-                        <span class="text-gray-600">Tidak Hadir</span>
-                        <span class="font-medium text-red-600">{{ $calculation['total_absent_days'] }} hari</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rincian Gaji -->
-            <div class="bg-white rounded-lg shadow p-6 mb-4">
-                <h3 class="font-bold text-lg mb-4">💰 Rincian Gaji</h3>
-                
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center py-2 border-b">
-                        <span class="text-gray-600">Gaji Pokok</span>
-                        <span class="font-mono">Rp {{ number_format($calculation['base_salary'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2 border-b text-yellow-600">
-                        <span>Potongan Terlambat ({{ $calculation['total_late_days'] }} × 2%)</span>
-                        <span class="font-mono">- Rp {{ number_format($calculation['late_deduction'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2 border-b text-red-600">
-                        <span>Potongan Absen ({{ $calculation['total_absent_days'] }} × 4%)</span>
-                        <span class="font-mono">- Rp {{ number_format($calculation['absent_deduction'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-3 bg-gray-50 rounded -mx-2 px-2">
-                        <span class="text-gray-600 font-bold">Total Potongan</span>
-                        <span class="font-mono text-red-600 font-bold">- Rp {{ number_format($calculation['deductions'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-3 bg-green-50 rounded -mx-2 px-2">
-                        <span class="text-green-700 font-bold text-lg">GAJI AKHIR</span>
-                        <span class="font-mono text-green-700 font-bold text-lg">Rp {{ number_format($calculation['final_salary'], 0, ',', '.') }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <form action="{{ route('staff.keuangan.salaries.store') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="user_id" value="{{ $calculation['user_id'] }}">
-                    <input type="hidden" name="month" value="{{ $calculation['month'] }}">
-                    <input type="hidden" name="year" value="{{ $calculation['year'] }}">
-                    <input type="hidden" name="base_salary" value="{{ $calculation['base_salary'] }}">
-                    <input type="hidden" name="deductions" value="{{ $calculation['deductions'] }}">
-                    <input type="hidden" name="total_work_days" value="{{ $calculation['total_work_days'] }}">
-                    <input type="hidden" name="total_late_days" value="{{ $calculation['total_late_days'] }}">
-                    <input type="hidden" name="total_absent_days" value="{{ $calculation['total_absent_days'] }}">
-                    <input type="hidden" name="final_salary" value="{{ $calculation['final_salary'] }}">
-                    
-                    <div class="flex gap-3">
-                        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded">
-                            💾 Simpan Data Gaji
+                <div class="bg-gray-50 dark:bg-slate-800 p-6 border-t dark:border-slate-700">
+                    <div class="flex gap-4 justify-center">
+                        <button onclick="window.print()" class="btn btn-secondary">
+                            <i class="fas fa-print"></i>
+                            <span>Cetak</span>
                         </button>
-                        <a href="{{ route('staff.keuangan.calculate') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-6 rounded">
-                            🔄 Hitung Ulang
-                        </a>
-                        <a href="{{ route('staff.keuangan.salaries') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-6 rounded">
-                            Batal
+                        <a href="{{ route('staff.keuangan.salaries.input') }}" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>Input ke Data Gaji</span>
                         </a>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

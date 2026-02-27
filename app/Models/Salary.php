@@ -15,31 +15,32 @@ class Salary extends Model
         'year',
         'base_salary',
         'potongan_kppn',
-        'simpanan_wajib',
-        'kredit_uang',
-        'kredit_toko',
-        'dharma_wanita',
-        'bpjs',
         'total_potongan_intern',
         'deductions',
         'final_salary',
         'created_by',
         'status',
+        'signed_by',
+        'signed_at',
         'notes',
     ];
 
     protected $casts = [
-        'base_salary' => 'decimal:2',
-        'potongan_kppn' => 'decimal:2',
-        'simpanan_wajib' => 'decimal:2',
-        'kredit_uang' => 'decimal:2',
-        'kredit_toko' => 'decimal:2',
-        'dharma_wanita' => 'decimal:2',
-        'bpjs' => 'decimal:2',
-        'total_potongan_intern' => 'decimal:2',
-        'deductions' => 'decimal:2',
-        'final_salary' => 'decimal:2',
+        'base_salary' => 'integer',
+        'potongan_kppn' => 'integer',
+        'total_potongan_intern' => 'integer',
+        'deductions' => 'integer',
+        'final_salary' => 'integer',
+        'signed_at' => 'datetime',
     ];
+
+    /**
+     * Get the deductions for the salary.
+     */
+    public function salaryDeductions()
+    {
+        return $this->hasMany(SalaryDeduction::class);
+    }
 
     /**
      * Get the user this salary belongs to
@@ -55,6 +56,30 @@ class Salary extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who signed this salary
+     */
+    public function signer()
+    {
+        return $this->belongsTo(User::class, 'signed_by');
+    }
+
+    /**
+     * Check if salary is signed
+     */
+    public function isSigned(): bool
+    {
+        return $this->signed_by !== null && $this->signed_at !== null;
+    }
+
+    /**
+     * Check if salary is draft (not signed)
+     */
+    public function isDraft(): bool
+    {
+        return !$this->isSigned();
     }
 
     /**
@@ -83,11 +108,9 @@ class Salary extends Model
      */
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
-            'draft' => 'Draft',
-            'approved' => 'Disetujui',
-            'paid' => 'Sudah Dibayar',
-            default => $this->status,
-        };
+        if ($this->isSigned()) {
+            return 'Ditandatangani';
+        }
+        return 'Draft';
     }
 }

@@ -1,112 +1,163 @@
-<x-app-layout>
+<x-app-layout title="Dashboard Keuangan">
+    {{-- Page Header --}}
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800">Dashboard Staff Keuangan</h2>
+        <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900">
+                <i class="fas fa-chart-line text-emerald-600 dark:text-emerald-400"></i>
+            </div>
+            <div>
+                <h1 class="page-title dark:page-title-dark">Dashboard Keuangan</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Selamat datang, {{ auth()->user()->name }}</p>
+            </div>
+        </div>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
-            @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            <!-- Statistik Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white rounded-lg shadow p-5">
-                    <div class="text-3xl font-bold text-blue-600">{{ $totalUsers }}</div>
-                    <div class="text-gray-500 text-sm">Total Karyawan</div>
-                </div>
-                <div class="bg-white rounded-lg shadow p-5">
-                    <div class="text-3xl font-bold text-green-600">{{ $salariesThisMonth }}</div>
-                    <div class="text-gray-500 text-sm">Gaji Sudah Dihitung (Bulan Ini)</div>
-                </div>
-                <div class="bg-white rounded-lg shadow p-5">
-                    <div class="text-3xl font-bold text-yellow-600">{{ $pendingSalaries }}</div>
-                    <div class="text-gray-500 text-sm">Belum Dihitung</div>
-                </div>
+    {{-- Stat Cards --}}
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div class="stat-card">
+            <div>
+                <p class="stat-card-label">Total Karyawan</p>
+                <p class="stat-card-value">{{ $totalUsers ?? 0 }}</p>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Quick Actions -->
-                <div class="lg:col-span-2 space-y-4">
-                    <!-- Menu Cepat -->
-                    <div class="bg-white rounded-lg shadow p-5">
-                        <h3 class="font-bold text-lg mb-4">🚀 Menu Cepat</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            <a href="{{ route('staff.keuangan.salaries') }}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
-                                <span class="text-2xl mb-2">💰</span>
-                                <span class="text-sm font-medium text-center">Lihat Gaji</span>
-                            </a>
-                            <a href="{{ route('staff.keuangan.calculate') }}" class="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition">
-                                <span class="text-2xl mb-2">🧮</span>
-                                <span class="text-sm font-medium text-center">Hitung Gaji</span>
-                            </a>
-                            <a href="{{ route('staff.keuangan.salaries', ['month' => $currentMonth, 'year' => $currentYear]) }}" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition">
-                                <span class="text-2xl mb-2">📊</span>
-                                <span class="text-sm font-medium text-center">Rekap Bulanan</span>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Gaji Terbaru -->
-                    <div class="bg-white rounded-lg shadow p-5">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-lg">📋 Gaji Terbaru</h3>
-                            <a href="{{ route('staff.keuangan.salaries') }}" class="text-blue-600 text-sm hover:underline">Lihat Semua →</a>
-                        </div>
-                        
-                        @if($recentSalaries->count() > 0)
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-3 py-2 text-left font-semibold">Karyawan</th>
-                                        <th class="px-3 py-2 text-center font-semibold">Periode</th>
-                                        <th class="px-3 py-2 text-right font-semibold">Gaji Akhir</th>
-                                        <th class="px-3 py-2 text-center font-semibold">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y">
-                                    @foreach($recentSalaries as $salary)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-3 py-2">{{ $salary->user->name }}</td>
-                                        <td class="px-3 py-2 text-center">{{ $salary->period }}</td>
-                                        <td class="px-3 py-2 text-right font-mono">Rp {{ number_format($salary->final_salary, 0, ',', '.') }}</td>
-                                        <td class="px-3 py-2 text-center">
-                                            @if($salary->status === 'paid')
-                                                <span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">Dibayar</span>
-                                            @elseif($salary->status === 'approved')
-                                                <span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">Disetujui</span>
-                                            @else
-                                                <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">Draft</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        @else
-                        <p class="text-gray-400 text-center py-8">Belum ada data gaji</p>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Sidebar -->
-                <div class="space-y-4">
-                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow p-5 text-white">
-                        <h3 class="font-bold text-lg mb-2">💡 Tips</h3>
-                        <ul class="text-sm space-y-2 opacity-90">
-                            <li>• Hitung gaji di akhir bulan</li>
-                            <li>• Pastikan semua absensi sudah terekam</li>
-                            <li>• Potongan: Terlambat 2%, Absen 4%</li>
-                        </ul>
-                    </div>
-                </div>
+            <div class="stat-card-icon bg-blue-100 dark:bg-blue-900">
+                <i class="fas fa-users text-xl text-blue-600 dark:text-blue-400"></i>
             </div>
+        </div>
 
+        <div class="stat-card">
+            <div>
+                <p class="stat-card-label">Total Gaji Bulan Ini</p>
+                <p class="stat-card-value text-lg">Rp {{ number_format($totalSalaryThisMonth ?? 0, 0, ',', '.') }}</p>
+            </div>
+            <div class="stat-card-icon bg-emerald-100 dark:bg-emerald-900">
+                <i class="fas fa-money-bill-wave text-xl text-emerald-600 dark:text-emerald-400"></i>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div>
+                <p class="stat-card-label">Sudah Dibayar</p>
+                <p class="stat-card-value">{{ $paidCount ?? 0 }}</p>
+                @if(($paidCount ?? 0) > 0)
+                <span class="stat-trend-up">
+                    <i class="fas fa-check"></i> Selesai
+                </span>
+                @endif
+            </div>
+            <div class="stat-card-icon bg-green-100 dark:bg-green-900">
+                <i class="fas fa-check-circle text-xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div>
+                <p class="stat-card-label">Belum Diinput</p>
+                <p class="stat-card-value">{{ $pendingCount ?? 0 }}</p>
+                @if(($pendingCount ?? 0) > 0)
+                <span class="stat-trend-down">
+                    <i class="fas fa-clock"></i> Pending
+                </span>
+                @endif
+            </div>
+            <div class="stat-card-icon bg-amber-100 dark:bg-amber-900">
+                <i class="fas fa-hourglass-half text-xl text-amber-600 dark:text-amber-400"></i>
+            </div>
+        </div>
+    </div>
+
+    {{-- Quick Actions --}}
+    <div class="card dark:card-dark mb-6">
+        <div class="card-header dark:card-header-dark">
+            <h3 class="font-semibold text-gray-900 dark:text-white">
+                <i class="fas fa-bolt text-amber-500 mr-2"></i>
+                Aksi Cepat
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="grid gap-3 sm:grid-cols-3">
+                <a href="{{ route('staff.keuangan.users') }}" class="btn btn-success w-full justify-start">
+                    <i class="fas fa-edit"></i>
+                    <span>Input Gaji</span>
+                </a>
+                <a href="{{ route('staff.keuangan.salaries') }}" class="btn btn-primary w-full justify-start">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Data Gaji</span>
+                </a>
+                <a href="{{ route('staff.keuangan.deductions.index') }}" class="btn btn-secondary w-full justify-start">
+                    <i class="fas fa-minus-circle"></i>
+                    <span>Jenis Potongan</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- Recent Salary Data --}}
+    <div class="card dark:card-dark">
+        <div class="card-header dark:card-header-dark flex items-center justify-between">
+            <h3 class="font-semibold text-gray-900 dark:text-white">
+                <i class="fas fa-clock text-blue-500 mr-2"></i>
+                Data Gaji Terbaru
+            </h3>
+            <a href="{{ route('staff.keuangan.salaries') }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                Lihat Semua <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table dark:table-dark">
+                <thead>
+                    <tr>
+                        <th>Karyawan</th>
+                        <th>Periode</th>
+                        <th>Gaji Diterima</th>
+                        <th>Status</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="dark:text-gray-300">
+                    @forelse($recentSalaries ?? [] as $salary)
+                    <tr>
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <div class="avatar avatar-sm bg-blue-600 text-white">
+                                    {{ strtoupper(substr($salary->user->name ?? 'N', 0, 1)) }}
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ $salary->user->name ?? 'N/A' }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $salary->user->nip ?? '-' }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {{ \Carbon\Carbon::create()->month((int) $salary->month)->translatedFormat('M') }} {{ $salary->year }}
+                        </td>
+                        <td class="font-medium text-gray-900 dark:text-white">
+                            Rp {{ number_format($salary->final_salary, 0, ',', '.') }}
+                        </td>
+                        <td>
+                            @if($salary->status === 'paid')
+                                <span class="badge badge-success">Dibayar</span>
+                            @elseif($salary->status === 'approved')
+                                <span class="badge badge-info">Disetujui</span>
+                            @else
+                                <span class="badge badge-warning">Pending</span>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ route('staff.keuangan.salaries.show', $salary) }}" class="btn btn-sm btn-primary btn-icon">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                            <p>Belum ada data gaji</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </x-app-layout>
