@@ -14,7 +14,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bind public path to subfolder directory so Vite finds the manifest
+        $this->app->bind('path.public', function() {
+            return base_path('../public_html/e-absensiPPNPN');
+        });
     }
 
     /**
