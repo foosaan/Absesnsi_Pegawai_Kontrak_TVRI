@@ -87,8 +87,21 @@ class AttendanceService
             return $minCheckOut;
         }
         
-        // Jika tepat waktu, checkout = check-in + 8 jam
-        return $checkInTime->copy()->addHours(self::WORK_DURATION_HOURS);
+        // Jika tepat waktu, checkout = yang lebih akhir antara (check-in + 8 jam) dan (jam pulang shift)
+        $durationBased = $checkInTime->copy()->addHours(self::WORK_DURATION_HOURS);
+        
+        // Hitung jam pulang shift
+        $endTimeString = $shift->end_time;
+        if ($endTimeString instanceof Carbon) {
+            $endTimeString = $endTimeString->format('H:i:s');
+        }
+        $shiftEnd = $checkInTime->copy()->setTimeFromTimeString($endTimeString);
+        if ($shiftEnd->lte($checkInTime)) {
+            $shiftEnd->addDay();
+        }
+        
+        // Ambil yang paling akhir — supaya absen awal tetap pulang minimal sesuai jam shift
+        return $durationBased->gt($shiftEnd) ? $durationBased : $shiftEnd;
     }
 
     /**
