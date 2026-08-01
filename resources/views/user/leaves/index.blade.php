@@ -16,6 +16,34 @@
         </div>
     </x-slot>
 
+    {{-- Statistik Cuti --}}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $leaveStats['total'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Pengajuan</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $leaveStats['approved'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Disetujui</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $leaveStats['total_days'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Hari Cuti</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $leaveStats['pending'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Menunggu</div>
+            </div>
+        </div>
+    </div>
+
     {{-- Flash Messages --}}
 
     @if($leaves->count() > 0)

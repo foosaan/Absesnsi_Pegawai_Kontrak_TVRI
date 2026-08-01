@@ -21,11 +21,14 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {{-- Profile Information --}}
         <div class="card">
-            <div class="card-header">
+            <div class="card-header flex items-center justify-between">
                 <h3 class="font-semibold text-gray-900 dark:text-white">
                     <i class="fas fa-id-card text-blue-500 mr-2"></i>
                     Informasi Profil
                 </h3>
+                <button type="button" id="btn-edit-profile" class="btn btn-sm btn-secondary" onclick="toggleEditProfile()">
+                    <i class="fas fa-edit mr-1"></i> Edit
+                </button>
             </div>
             <div class="card-body">
                 @include('profile.partials.update-profile-information-form')
@@ -34,11 +37,14 @@
 
         {{-- Update Password --}}
         <div class="card">
-            <div class="card-header">
+            <div class="card-header flex items-center justify-between">
                 <h3 class="font-semibold text-gray-900 dark:text-white">
                     <i class="fas fa-lock text-yellow-500 mr-2"></i>
                     Ubah Password
                 </h3>
+                <button type="button" id="btn-edit-password" class="btn btn-sm btn-secondary" onclick="toggleEditPassword()">
+                    <i class="fas fa-key mr-1"></i> Ubah Password
+                </button>
             </div>
             <div class="card-body">
                 @include('profile.partials.update-password-form')

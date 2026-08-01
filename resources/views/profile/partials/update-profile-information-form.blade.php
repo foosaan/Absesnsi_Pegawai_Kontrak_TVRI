@@ -3,11 +3,9 @@
         Perbarui nama dan alamat email akun Anda.
     </p>
 
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
-        @csrf
-    </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="space-y-4">
+
+    <form method="post" action="{{ route('profile.update') }}" id="form-profile-info" class="space-y-4">
         @csrf
         @method('patch')
 
@@ -17,7 +15,7 @@
                 <i class="fas fa-user form-control-icon"></i>
                 <input id="name" name="name" type="text" 
                        class="form-control form-control-with-icon" 
-                       value="{{ old('name', $user->name) }}" required autofocus autocomplete="name">
+                       value="{{ old('name', $user->name) }}" required autofocus autocomplete="name" disabled>
             </div>
             @error('name')
                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -30,32 +28,22 @@
                 <i class="fas fa-envelope form-control-icon"></i>
                 <input id="email" name="email" type="email" 
                        class="form-control form-control-with-icon" 
-                       value="{{ old('email', $user->email) }}" required autocomplete="username">
+                       value="{{ old('email', $user->email) }}" required autocomplete="username" disabled>
             </div>
             @error('email')
                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
             @enderror
 
-            @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div class="mt-2">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        Email Anda belum diverifikasi.
-                        <button form="send-verification" class="underline text-blue-600 hover:text-blue-800 dark:text-blue-400">
-                            Klik untuk mengirim ulang email verifikasi.
-                        </button>
-                    </p>
-                    @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 text-sm text-green-600 dark:text-green-400">
-                            <i class="fas fa-check-circle mr-1"></i> Link verifikasi baru telah dikirim.
-                        </p>
-                    @endif
-                </div>
-            @endif
+
         </div>
 
-        <div class="flex items-center gap-4 pt-2">
+        {{-- Tombol Simpan & Batal (hidden default) --}}
+        <div class="flex items-center gap-4 pt-2 hidden" id="profile-info-actions">
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-save mr-1"></i> Simpan
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="cancelEditProfile()">
+                Batal
             </button>
 
             @if (session('status') === 'profile-updated')
@@ -67,3 +55,30 @@
         </div>
     </form>
 </section>
+
+<script>
+    const profileInputs = document.querySelectorAll('#form-profile-info input');
+    const profileActions = document.getElementById('profile-info-actions');
+    const btnEditProfile = document.getElementById('btn-edit-profile');
+
+    // Simpan nilai awal
+    let profileOriginalValues = {};
+    profileInputs.forEach(input => {
+        profileOriginalValues[input.id] = input.value;
+    });
+
+    function toggleEditProfile() {
+        profileInputs.forEach(input => input.disabled = false);
+        profileActions.classList.remove('hidden');
+        if (btnEditProfile) btnEditProfile.classList.add('hidden');
+    }
+
+    function cancelEditProfile() {
+        profileInputs.forEach(input => {
+            input.disabled = true;
+            input.value = profileOriginalValues[input.id] || '';
+        });
+        profileActions.classList.add('hidden');
+        if (btnEditProfile) btnEditProfile.classList.remove('hidden');
+    }
+</script>

@@ -24,7 +24,8 @@ class SalaryTemplateExport implements FromCollection, WithHeadings, WithStyles, 
         $types = $this->deductionTypes;
 
         return User::where('role', 'user')
-            ->select('nip', 'name')
+            ->with('profile')
+            ->select('id', 'name')
             ->orderBy('name')
             ->get()
             ->map(function ($user) use ($types) {

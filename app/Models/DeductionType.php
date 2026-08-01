@@ -21,7 +21,7 @@ class DeductionType extends Model
     ];
 
     /**
-     * Get the salary deductions for this type.
+     * Dapatkan potongan gaji untuk tipe ini.
      */
     public function salaryDeductions()
     {

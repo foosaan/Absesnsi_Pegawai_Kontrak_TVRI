@@ -20,6 +20,40 @@
         </div>
     </x-slot>
 
+    {{-- Statistik Cuti --}}
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $leaveStats['total'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Pengajuan</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $leaveStats['approved'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Disetujui</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $leaveStats['total_days'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Hari Cuti</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $leaveStats['pending'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Menunggu</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="text-2xl font-bold text-red-600 dark:text-red-400">{{ $leaveStats['rejected'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Ditolak</div>
+            </div>
+        </div>
+    </div>
+
     {{-- Filter --}}
     <div class="card mb-6">
         <div class="card-body">
@@ -187,7 +221,15 @@
                                     </div>
                                 </div>
                             @else
-                                <span class="text-xs text-gray-400">—</span>
+                                <form method="POST" action="{{ route('staff.psdm.leaves.delete', $leave) }}"
+                                      data-confirm="Hapus data cuti {{ $leave->user->name }} ({{ $leave->start_date->format('d M') }} - {{ $leave->end_date->format('d M Y') }})? Data yang sudah dihapus tidak bisa dikembalikan."
+                                      data-confirm-title="Hapus Data Cuti">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             @endif
                         </td>
                     </tr>

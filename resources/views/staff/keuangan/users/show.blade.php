@@ -44,7 +44,7 @@
                     </div>
                     <div class="flex items-center justify-between py-2 border-b dark:border-slate-700">
                         <span class="text-sm text-gray-500 dark:text-gray-400">No. HP</span>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $user->no_hp ?? '-' }}</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $user->no_telepon ?? '-' }}</span>
                     </div>
                     <div class="flex items-center justify-between py-2 border-b dark:border-slate-700">
                         <span class="text-sm text-gray-500 dark:text-gray-400">Bagian</span>
@@ -60,28 +60,14 @@
 
         {{-- Data Keuangan --}}
         <div class="card dark:card-dark h-fit">
-            <div class="card-header dark:card-header-dark">
+            <div class="card-header dark:card-header-dark flex justify-between items-center">
                 <h3 class="font-semibold text-gray-900 dark:text-white">
                     <i class="fas fa-wallet text-emerald-500 mr-2"></i>
-                    Data Keuangan
+                    Status Kepegawaian
                 </h3>
             </div>
             <div class="card-body">
                 <div class="space-y-4">
-                    <div class="flex items-center justify-between py-2 border-b dark:border-slate-700">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Gaji Pokok</span>
-                        <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                            Rp {{ number_format($user->gaji_pokok ?? 0, 0, ',', '.') }}
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between py-2 border-b dark:border-slate-700">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Nama Bank</span>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $user->nama_bank ?? '-' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between py-2 border-b dark:border-slate-700">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">No. Rekening</span>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $user->no_rekening ?? '-' }}</span>
-                    </div>
                     <div class="flex items-center justify-between py-2">
                         <span class="text-sm text-gray-500 dark:text-gray-400">Status Pegawai</span>
                         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $user->status_pegawai ?? '-' }}</span>

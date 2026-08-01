@@ -23,7 +23,7 @@ class ActivityLog extends Model
     ];
 
     /**
-     * Relationship to user
+     * Relasi ke pengguna (user)
      */
     public function user()
     {
@@ -31,7 +31,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Get the related model
+     * Dapatkan model terkait
      */
     public function subject()
     {
@@ -39,7 +39,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Log an activity
+     * Catat log aktivitas
      */
     public static function log($action, $model, $description, $oldValues = null, $newValues = null)
     {
@@ -56,7 +56,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Get action color for display
+     * Dapatkan warna aksi untuk tampilan
      */
     public function getActionColorAttribute()
     {
@@ -69,7 +69,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Get action icon for display
+     * Dapatkan ikon aksi untuk tampilan
      */
     public function getActionIconAttribute()
     {

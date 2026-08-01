@@ -1,4 +1,4 @@
-<x-app-layout title="Monitor Absensi">
+<x-app-layout title="Monitor Presensi">
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3">
@@ -6,7 +6,7 @@
                     <i class="fas fa-desktop text-emerald-600 dark:text-emerald-400"></i>
                 </div>
                 <div>
-                    <h1 class="page-title dark:page-title-dark">Monitor Absensi</h1>
+                    <h1 class="page-title dark:page-title-dark">Monitor Presensi</h1>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                         Pantau kehadiran karyawan secara real-time
                     </p>
@@ -114,6 +114,71 @@
         </div>
     </div>
 
+    @if(isset($stats) && $stats)
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-6">
+        <!-- Hadir -->
+        <div class="card bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50">
+            <div class="card-body p-4 flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
+                    <i class="fas fa-check-circle text-emerald-600 dark:text-emerald-400"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-emerald-800 dark:text-emerald-400 uppercase">Hadir Tepat Waktu</p>
+                    <h4 class="text-2xl font-bold text-emerald-950 dark:text-white">{{ $stats['hadir'] }}</h4>
+                </div>
+            </div>
+        </div>
+        <!-- Terlambat -->
+        <div class="card bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50">
+            <div class="card-body p-4 flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/50">
+                    <i class="fas fa-exclamation-circle text-red-600 dark:text-red-400"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-red-800 dark:text-red-400 uppercase">Terlambat</p>
+                    <h4 class="text-2xl font-bold text-red-950 dark:text-white">{{ $stats['terlambat'] }}</h4>
+                </div>
+            </div>
+        </div>
+        <!-- Cuti -->
+        <div class="card bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/50">
+            <div class="card-body p-4 flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/50">
+                    <i class="fas fa-calendar-times text-indigo-600 dark:text-indigo-400"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-indigo-800 dark:text-indigo-400 uppercase">Cuti</p>
+                    <h4 class="text-2xl font-bold text-indigo-950 dark:text-white">{{ $stats['cuti'] }}</h4>
+                </div>
+            </div>
+        </div>
+        <!-- Dinas Luar -->
+        <div class="card bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50">
+            <div class="card-body p-4 flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                    <i class="fas fa-plane-departure text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-blue-800 dark:text-blue-400 uppercase">Dinas Luar</p>
+                    <h4 class="text-2xl font-bold text-blue-950 dark:text-white">{{ $stats['dinas_luar'] }}</h4>
+                </div>
+            </div>
+        </div>
+        <!-- Mangkir / Absen -->
+        <div class="card bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <div class="card-body p-4 flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700">
+                    <i class="fas fa-user-slash text-gray-500 dark:text-gray-400"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-700 dark:text-gray-400 uppercase">Mangkir (Alpa)</p>
+                    <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['tidak_hadir'] }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <script>
         function clearDate() {
             document.querySelector('input[name="date"]').value = '';
@@ -129,7 +194,7 @@
         <div class="card-header">
             <h3 class="font-semibold text-gray-900 dark:text-white">
                 <i class="fas fa-download text-green-500 mr-2"></i>
-                Download Rekap Absensi
+                Download Rekap Presensi
             </h3>
         </div>
         <div class="card-body">
@@ -188,7 +253,7 @@
                     {{-- Semua: Info text --}}
                     <div x-show="filterType === 'all'" x-cloak>
                         <p class="text-sm text-gray-500 dark:text-gray-400 py-2">
-                            <i class="fas fa-info-circle mr-1"></i> Semua data absensi akan didownload
+                            <i class="fas fa-info-circle mr-1"></i> Semua data presensi akan didownload
                         </p>
                     </div>
 
@@ -238,8 +303,8 @@
                             </div>
                         </td>
                         <td>
-                            <span class="text-sm text-gray-600 dark:text-gray-300">{{ \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('d M Y') }}</span>
-                            <p class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('l') }}</p>
+                            <span class="text-sm text-gray-600 dark:text-gray-300">{{ $attendance->work_date ? $attendance->work_date->translatedFormat('d M Y') : \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('d M Y') }}</span>
+                            <p class="text-[10px] text-gray-400">{{ $attendance->work_date ? $attendance->work_date->translatedFormat('l') : \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('l') }}</p>
                         </td>
                         <td>{{ $attendance->shift->name ?? 'Reguler' }}</td>
                         <td>
@@ -301,12 +366,17 @@
                             @else
                                 <span class="badge badge-success">Tepat Waktu</span>
                             @endif
+                            @if($attendance->manual_reason)
+                                <span class="badge bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 ml-1" title="Manual: {{ $attendance->manual_reason }}{{ $attendance->createdByUser ? ' (oleh: ' . $attendance->createdByUser->name . ')' : '' }}">
+                                    <i class="fas fa-pen-alt text-[9px] mr-0.5"></i>Manual
+                                </span>
+                            @endif
                         </td>
                         <td class="text-center">
                             <button type="button"
                                 @click="deleteModal = true; deleteUrl = '{{ route('staff.psdm.attendance.delete', $attendance->id) }}'; deleteName = '{{ $attendance->user->name ?? '-' }}'; deleteDate = '{{ \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('d M Y') }}'"
                                 class="h-8 w-8 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 flex items-center justify-center transition-colors group mx-auto"
-                                title="Hapus Absensi">
+                                title="Hapus Presensi">
                                 <i class="fas fa-trash-alt text-[11px] text-red-500 group-hover:text-red-600 dark:text-red-400"></i>
                             </button>
                         </td>
@@ -315,7 +385,7 @@
                     <tr>
                         <td colspan="8" class="text-center py-8 text-gray-500 dark:text-gray-400">
                             <i class="fas fa-calendar-times text-4xl mb-3 opacity-50"></i>
-                            <p>Tidak ada data absensi yang ditemukan</p>
+                            <p>Tidak ada data presensi yang ditemukan</p>
                         </td>
                     </tr>
                     @endforelse
@@ -340,7 +410,7 @@
                         </button>
                     </div>
                     <div class="p-4">
-                        <img :src="photoUrl" alt="Foto Absensi" class="w-full rounded-lg shadow-sm">
+                        <img :src="photoUrl" alt="Foto Presensi" class="w-full rounded-lg shadow-sm">
                     </div>
                 </div>
             </div>
@@ -355,16 +425,16 @@
                         <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
                             <i class="fas fa-exclamation-triangle text-2xl text-red-600 dark:text-red-400"></i>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Hapus Absensi?</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Hapus Presensi?</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                            Anda akan menghapus absensi:
+                            Anda akan menghapus presensi:
                         </p>
                         <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1" x-text="deleteName"></p>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4" x-text="'Tanggal: ' + deleteDate"></p>
                         <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-5">
                             <p class="text-xs text-amber-700 dark:text-amber-400">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                Karyawan akan dapat melakukan absensi ulang untuk tanggal ini.
+                                Karyawan akan dapat melakukan presensi ulang untuk tanggal ini.
                             </p>
                         </div>
                         <div class="flex items-center justify-center gap-3">

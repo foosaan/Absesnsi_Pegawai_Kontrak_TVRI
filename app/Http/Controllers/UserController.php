@@ -26,12 +26,12 @@ class UserController extends Controller
             ->take(5)
             ->get();
         
-        // Status absensi hari ini
+        // Status presensi hari ini
         $todayAttendance = Attendance::where('user_id', $user->id)
-            ->whereDate('check_in_time', Carbon::today())
+            ->where('work_date', Carbon::today()->toDateString())
             ->first();
         
-        // Riwayat absensi terakhir (10 data)
+        // Riwayat presensi terakhir (10 data)
         $recentAttendances = Attendance::where('user_id', $user->id)
             ->orderBy('check_in_time', 'desc')
             ->take(10)
@@ -42,7 +42,8 @@ class UserController extends Controller
         $endOfMonth = Carbon::now()->endOfMonth();
         
         $monthlyAttendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('check_in_time', [$startOfMonth, $endOfMonth])
+            ->whereYear('work_date', Carbon::now()->year)
+            ->whereMonth('work_date', Carbon::now()->month)
             ->get();
         
         $stats = [
@@ -61,12 +62,13 @@ class UserController extends Controller
         } elseif ($user->isNormalAttendance()) {
             $currentShift = \App\Models\Shift::getNormalShift();
         }
+        // Tipe Umum: tidak ada shift ($currentShift tetap null, ditampilkan berbeda di view)
         
         return view('dashboard', compact('announcements', 'todayAttendance', 'stats', 'recentAttendances', 'currentShift', 'allShifts'));
     }
 
     /**
-     * Rekap absensi user
+     * Rekap presensi user
      */
     public function rekap(Request $request)
     {
@@ -79,8 +81,9 @@ class UserController extends Controller
         
         $attendances = Attendance::with('shift')
             ->where('user_id', $user->id)
-            ->whereBetween('check_in_time', [$startDate, $endDate])
-            ->orderBy('check_in_time', 'desc')
+            ->whereYear('work_date', $year)
+            ->whereMonth('work_date', $month)
+            ->orderBy('work_date', 'desc')
             ->get();
         
         // Statistik
@@ -94,7 +97,7 @@ class UserController extends Controller
     }
 
     /**
-     * Export rekap absensi pribadi ke Excel
+     * Export rekap presensi pribadi ke Excel
      */
     public function exportRekap(Request $request)
     {
@@ -107,10 +110,10 @@ class UserController extends Controller
             case 'day':
                 $date = $request->get('date', Carbon::today()->toDateString());
                 $params['date'] = $date;
-                $filename = 'rekap_absensi_' . $userName . '_' . $date . '.xlsx';
+                $filename = 'rekap_presensi_' . $userName . '_' . $date . '.xlsx';
                 break;
             case 'all':
-                $filename = 'rekap_absensi_' . $userName . '_semua_data.xlsx';
+                $filename = 'rekap_presensi_' . $userName . '_semua_data.xlsx';
                 break;
             default: // month
                 $filterType = 'month';
@@ -119,7 +122,7 @@ class UserController extends Controller
                 $params['month'] = $month;
                 $params['year'] = $year;
                 $monthName = Carbon::create($year, $month, 1)->translatedFormat('F');
-                $filename = 'rekap_absensi_' . $userName . '_' . $monthName . '_' . $year . '.xlsx';
+                $filename = 'rekap_presensi_' . $userName . '_' . $monthName . '_' . $year . '.xlsx';
                 break;
         }
 
@@ -157,8 +160,20 @@ class UserController extends Controller
         $leaves = Leave::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
+
+        // Statistik cuti user — kueri tunggal, bukan 5 kueri
+        $allLeaves = Leave::where('user_id', $user->id)->get();
+        $statusCounts = $allLeaves->countBy('status');
+
+        $leaveStats = [
+            'total' => $allLeaves->count(),
+            'approved' => $statusCounts->get('approved', 0),
+            'rejected' => $statusCounts->get('rejected', 0),
+            'pending' => $statusCounts->get('pending', 0),
+            'total_days' => $allLeaves->where('status', 'approved')->sum('total_days'),
+        ];
         
-        return view('user.leaves.index', compact('leaves'));
+        return view('user.leaves.index', compact('leaves', 'leaveStats'));
     }
 
     /**
@@ -178,13 +193,13 @@ class UserController extends Controller
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'required|string|max:500',
-            'type' => 'required|in:cuti_tahunan,sakit,alasan_penting,lainnya',
+            'type' => 'required|in:cuti_tahunan,sakit,izin,lainnya',
             'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',
         ]);
 
         $userId = auth()->id();
 
-        // Bug #8 fix: Check for overlapping leaves (pending or approved)
+        // Perbaikan Bug #8: Periksa pengajuan cuti yang tumpang tindih (pending atau disetujui)
         $overlapping = Leave::where('user_id', $userId)
             ->whereIn('status', ['pending', 'approved'])
             ->where(function ($query) use ($request) {
@@ -202,29 +217,27 @@ class UserController extends Controller
                 ->with('error', 'Sudah ada pengajuan cuti di tanggal tersebut (pending atau disetujui).');
         }
 
-        // Bug #3 fix: Check leave balance for cuti_tahunan
-        if ($request->type === 'cuti_tahunan') {
-            $year = \Carbon\Carbon::parse($request->start_date)->year;
-            $balance = \App\Models\LeaveBalance::getOrCreate($userId, $year);
-            
-            // Count working days requested
-            $workingDays = 0;
-            $date = \Carbon\Carbon::parse($request->start_date);
-            $endDate = \Carbon\Carbon::parse($request->end_date);
-            while ($date->lte($endDate)) {
-                if ($date->isWeekday()) {
-                    $workingDays++;
-                }
-                $date->addDay();
-            }
-            
-            if ($workingDays > $balance->remaining) {
-                return back()->withInput()
-                    ->with('error', "Saldo cuti tahunan tidak cukup. Sisa: {$balance->remaining} hari, dibutuhkan: {$workingDays} hari kerja.");
-            }
+        // Periksa tumpang tindih dengan dinas luar yang aktif (pending atau approved)
+        $tripOverlap = BusinessTrip::where('user_id', $userId)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where(function ($query) use ($request) {
+                $query->whereBetween('start_date', [$request->start_date, $request->end_date])
+                      ->orWhereBetween('end_date', [$request->start_date, $request->end_date])
+                      ->orWhere(function ($q) use ($request) {
+                          $q->where('start_date', '<=', $request->start_date)
+                            ->where('end_date', '>=', $request->end_date);
+                      });
+            })
+            ->exists();
+
+        if ($tripOverlap) {
+            return back()->withInput()
+                ->with('error', 'Sudah ada pengajuan dinas luar di tanggal tersebut.');
         }
 
-        // Handle file upload
+
+
+        // Tangani unggahan file
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
             $attachmentPath = $request->file('attachment')->store('leave-attachments', 'public');
@@ -327,7 +340,7 @@ class UserController extends Controller
 
         $userId = auth()->id();
 
-        // Check overlap with existing business trips
+        // Periksa tumpang tindih dengan dinas luar yang sudah ada
         $overlapping = BusinessTrip::where('user_id', $userId)
             ->whereIn('status', ['pending', 'approved'])
             ->where(function ($query) use ($request) {
@@ -345,7 +358,7 @@ class UserController extends Controller
                 ->with('error', 'Sudah ada pengajuan dinas luar di tanggal tersebut.');
         }
 
-        // Check overlap with leaves
+        // Periksa tumpang tindih dengan cuti
         $leaveOverlap = Leave::where('user_id', $userId)
             ->whereIn('status', ['pending', 'approved'])
             ->where(function ($query) use ($request) {

@@ -73,7 +73,7 @@
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
                                 <input type="number" name="base_salary" id="base_salary" 
                                        class="form-control pl-10" 
-                                       value="{{ old('base_salary', $user->gaji_pokok ?? 0) }}" required>
+                                       value="{{ old('base_salary', 0) }}" required>
                             </div>
                         </div>
 

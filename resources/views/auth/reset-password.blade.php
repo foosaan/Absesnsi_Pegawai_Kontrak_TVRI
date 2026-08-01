@@ -39,6 +39,7 @@
                             class="form-control form-control-with-icon" 
                             required 
                             autofocus
+                            readonly
                         >
                     </div>
                 </div>
@@ -56,12 +57,15 @@
                             name="password" 
                             class="form-control form-control-with-icon pr-10" 
                             placeholder="••••••••"
+                            minlength="8"
+                            maxlength="20"
                             required 
                         >
                         <button type="button" @click="show = !show" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
                             <i :class="show ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                         </button>
                     </div>
+                    <p class="text-xs text-gray-500 mt-1">8-20 karakter, huruf besar, huruf kecil, angka & simbol</p>
                 </div>
 
                 {{-- Confirm Password --}}
@@ -77,6 +81,8 @@
                             name="password_confirmation" 
                             class="form-control form-control-with-icon pr-10" 
                             placeholder="••••••••"
+                            minlength="8"
+                            maxlength="20"
                             required 
                         >
                         <button type="button" @click="show = !show" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">

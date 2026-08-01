@@ -22,53 +22,34 @@
         </div>
     </x-slot>
 
-    {{-- Upload Tanda Tangan --}}
+    {{-- Signature Status Bar --}}
     @if(!auth()->user()->signature)
     <div class="card dark:card-dark mb-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
-        <div class="card-body">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div class="flex items-center gap-3 flex-1">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50 shrink-0">
-                        <i class="fas fa-signature text-amber-600 dark:text-amber-400"></i>
-                    </div>
-                    <div>
-                        <p class="font-medium text-amber-800 dark:text-amber-300">Tanda Tangan Belum Diupload</p>
-                        <p class="text-xs text-amber-600 dark:text-amber-400">Upload tanda tangan Anda agar bisa menandatangani slip gaji</p>
-                    </div>
+        <div class="card-body py-3">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-exclamation-triangle text-amber-500"></i>
+                    <p class="text-sm text-amber-700 dark:text-amber-300">
+                        Anda belum upload tanda tangan. Upload terlebih dahulu untuk bisa menandatangani slip gaji.
+                    </p>
                 </div>
-                <form method="POST" action="{{ route('staff.keuangan.signature.upload') }}" enctype="multipart/form-data" class="flex items-center gap-2">
-                    @csrf
-                    <input type="file" name="signature" accept="image/*" required
-                           class="text-sm text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 dark:file:bg-amber-900/50 dark:file:text-amber-300">
-                    <button type="submit" class="btn btn-sm btn-warning shrink-0">
-                        <i class="fas fa-upload mr-1"></i> Upload
-                    </button>
-                </form>
+                <a href="{{ route('staff.keuangan.signature') }}" class="btn btn-sm btn-warning shrink-0">
+                    <i class="fas fa-file-signature mr-1"></i> Upload TTD
+                </a>
             </div>
         </div>
     </div>
     @else
-    <div class="card dark:card-dark mb-6 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-        <div class="card-body">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div class="flex items-center gap-3 flex-1">
-                    <img src="{{ asset('storage/' . auth()->user()->signature) }}" class="h-12 w-auto rounded border dark:border-slate-600">
-                    <div>
-                        <p class="font-medium text-green-800 dark:text-green-300"><i class="fas fa-check-circle mr-1"></i>Tanda Tangan Aktif</p>
-                        <p class="text-xs text-green-600 dark:text-green-400">Tanda tangan Anda sudah tersimpan</p>
+        @if($salaries->where('signed_by', null)->count() > 0)
+        <div class="card dark:card-dark mb-6 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+            <div class="card-body py-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-green-500"></i>
+                        <p class="text-sm text-green-700 dark:text-green-300">
+                            Tanda tangan aktif. Ada <strong>{{ $salaries->where('signed_by', null)->count() }}</strong> slip belum ditandatangani.
+                        </p>
                     </div>
-                </div>
-                <div class="flex gap-2">
-                    <form method="POST" action="{{ route('staff.keuangan.signature.upload') }}" enctype="multipart/form-data" class="flex items-center gap-2">
-                        @csrf
-                        <input type="file" name="signature" accept="image/*" required
-                               class="text-sm text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-slate-700 dark:file:text-gray-300">
-                        <button type="submit" class="btn btn-sm btn-secondary shrink-0">
-                            <i class="fas fa-sync-alt mr-1"></i> Ganti
-                        </button>
-                    </form>
-                    {{-- Bulk Sign Button --}}
-                    @if($salaries->where('signed_by', null)->count() > 0)
                     <form method="POST" action="{{ route('staff.keuangan.salaries.bulk-sign') }}"
                           data-confirm="Tanda tangani semua slip gaji periode ini yang belum ditandatangani?" 
                           data-confirm-title="Konfirmasi Tanda Tangan Massal">
@@ -80,11 +61,10 @@
                             TTD Semua ({{ $salaries->where('signed_by', null)->count() }})
                         </button>
                     </form>
-                    @endif
                 </div>
             </div>
         </div>
-    </div>
+        @endif
     @endif
 
     {{-- Filter Card --}}
@@ -114,8 +94,7 @@
                     <select name="status" class="form-control" onchange="this.form.submit()">
                         <option value="">Semua</option>
                         <option value="draft" {{ ($status ?? '') == 'draft' ? 'selected' : '' }}>Draft</option>
-                        <option value="approved" {{ ($status ?? '') == 'approved' ? 'selected' : '' }}>Approved</option>
-                        <option value="paid" {{ ($status ?? '') == 'paid' ? 'selected' : '' }}>Paid</option>
+                        <option value="paid" {{ ($status ?? '') == 'paid' ? 'selected' : '' }}>Dibayar</option>
                     </select>
                 </div>
                 <div class="flex-1" style="min-width: 200px;">
@@ -205,7 +184,7 @@
                         <td>
                             @if($salary->isSigned())
                                 <span class="badge badge-success" title="Ditandatangani oleh {{ $salary->signer->name ?? '-' }} pada {{ $salary->signed_at->format('d/m/Y H:i') }}">
-                                    <i class="fas fa-check-circle mr-1"></i>Signed
+                                    <i class="fas fa-check-circle mr-1"></i>Dibayar
                                 </span>
                             @else
                                 @if(auth()->user()->signature)

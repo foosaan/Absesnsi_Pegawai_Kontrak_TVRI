@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'TVRI Absensi' }}</title>
+    <title>{{ $title ?? 'TVRI Presensi' }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/logo tvri.png') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -75,6 +76,82 @@
                             <span>{{ session('success') }}</span>
                         </div>
                     </div>
+                @endif
+
+                @if(session('recovery_codes'))
+                    <div class="mb-6 p-5 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded-r-lg shadow-sm text-amber-900 dark:text-amber-200">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-exclamation-triangle text-xl text-amber-500"></i>
+                                    <span class="font-bold text-lg">PENTING: Simpan Recovery Code ini di tempat aman!</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="copyRecoveryCodes()" class="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:border-slate-700 py-1.5 px-3 rounded text-xs flex items-center gap-1.5 font-semibold transition-colors shadow-sm">
+                                        <i class="fas fa-copy"></i>
+                                        <span>Salin Semua</span>
+                                    </button>
+                                    <button onclick="downloadRecoveryCodes()" class="bg-amber-600 hover:bg-amber-700 text-white py-1.5 px-3 rounded text-xs flex items-center gap-1.5 font-semibold transition-colors shadow-sm">
+                                        <i class="fas fa-download"></i>
+                                        <span>Unduh (.txt)</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-sm">Kode pemulihan ini **hanya ditampilkan sekali saja**. Gunakan salah satu kode di bawah ini untuk masuk ke akun jika Anda kehilangan akses Google Authenticator:</p>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 font-mono text-center font-bold tracking-wider text-gray-900 dark:text-white select-all">
+                                @foreach(session('recovery_codes') as $code)
+                                    <div class="p-3 bg-white dark:bg-slate-900 rounded-lg shadow-xs border border-amber-200 dark:border-slate-800 text-sm hover:bg-amber-100 dark:hover:bg-slate-800 transition-colors recovery-code-item">
+                                        {{ $code }}
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="mt-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Masing-masing kode di atas bersifat sekali pakai (*single-use*).</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                        function getRecoveryCodesText() {
+                            const codes = [];
+                            document.querySelectorAll('.recovery-code-item').forEach((el) => {
+                                codes.push(el.innerText.trim());
+                            });
+                            return codes;
+                        }
+
+                        function copyRecoveryCodes() {
+                            const codes = getRecoveryCodesText().join('\n');
+                            navigator.clipboard.writeText(codes).then(() => {
+                                alert('Semua kode pemulihan berhasil disalin ke clipboard!');
+                            }).catch(err => {
+                                console.error('Gagal menyalin kode: ', err);
+                            });
+                        }
+
+                        function downloadRecoveryCodes() {
+                            const codes = getRecoveryCodesText();
+                            let content = "=== KODE PEMULIHAN 2FA - TVRI ABSENSI ===\n";
+                            content += "Tanggal Dibuat: " + new Date().toLocaleDateString('id-ID') + "\n";
+                            content += "Simpan file ini di tempat yang aman. Jangan bagikan kepada siapa pun.\n";
+                            content += "Setiap kode di bawah ini hanya dapat digunakan SATU KALI untuk masuk.\n\n";
+                            
+                            codes.forEach((code, index) => {
+                                content += `${index + 1}. ${code}\n`;
+                            });
+
+                            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = 'tvri-absensi-recovery-codes.txt';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                        }
+                    </script>
                 @endif
 
                 @if(session('error'))
@@ -239,22 +316,17 @@
 
     @stack('scripts')
 
-    {{-- Global: Auto-focus search input after page load to preserve typing flow --}}
+    {{-- Auto-logout: redirect to login when session expires --}}
+    @auth
     <script>
-        (function() {
-            // After page loads (including Turbo navigations), refocus the search input if it has a value
-            function refocusSearch() {
-                const searchInput = document.querySelector('input[name="search"]');
-                if (searchInput && searchInput.value.length > 0) {
-                    searchInput.focus();
-                    // Place cursor at end of text
-                    const len = searchInput.value.length;
-                    searchInput.setSelectionRange(len, len);
-                }
-            }
-            document.addEventListener('DOMContentLoaded', refocusSearch);
-            document.addEventListener('turbo:load', refocusSearch);
-        })();
+    (function() {
+        const SESSION_LIFETIME = {{ config('session.lifetime') }};
+        // Auto-redirect after session lifetime
+        setTimeout(function() {
+            window.location.href = '{{ route("login") }}';
+        }, SESSION_LIFETIME * 60 * 1000);
+    })();
     </script>
+    @endauth
 </body>
 </html>

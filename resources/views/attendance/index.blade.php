@@ -1,11 +1,11 @@
-<x-app-layout title="Absensi">
+<x-app-layout title="Presensi">
     <x-slot name="header">
         <div class="flex items-center gap-3">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
                 <i class="fas fa-fingerprint text-blue-600 dark:text-blue-400"></i>
             </div>
             <div>
-                <h1 class="page-title">Absensi Karyawan</h1>
+                <h1 class="page-title">Presensi Karyawan</h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ now()->translatedFormat('l, d F Y') }}</p>
             </div>
         </div>
@@ -36,7 +36,7 @@
                         <h3 class="text-lg font-bold text-indigo-700 dark:text-indigo-300">Hari Cuti</h3>
                         <p class="text-gray-600 dark:text-gray-400">{{ $statusMessage }}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            <i class="fas fa-info-circle mr-1"></i>Anda tidak perlu melakukan absensi pada hari ini.
+                            <i class="fas fa-info-circle mr-1"></i>Anda tidak perlu melakukan presensi pada hari ini.
                         </p>
                     </div>
                 </div>
@@ -86,7 +86,28 @@
     @endif
 
     {{-- Shift Info --}}
-    @if(auth()->user()->isNormalAttendance() && $currentShift)
+    @if(auth()->user()->isUmumAttendance())
+        <div class="card mb-6 border-l-4 border-teal-500">
+            <div class="card-body">
+                <h4 class="font-bold text-teal-700 dark:text-teal-400 mb-3">
+                    <i class="fas fa-clock mr-2"></i>Jadwal Kerja Umum (24 Jam)
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Jam Check-in</p>
+                        <p class="text-xl font-bold text-teal-700 dark:text-teal-300">Kapan Saja</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Durasi Kerja</p>
+                        <p class="text-xl font-bold text-gray-900 dark:text-white">Min. 8 Jam</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                    <i class="fas fa-info-circle mr-1"></i>Tidak ada batasan jam masuk &amp; tidak ada status terlambat. Tombol pulang tersedia setelah 8 jam kerja.
+                </p>
+            </div>
+        </div>
+    @elseif(auth()->user()->isNormalAttendance() && $currentShift)
         <div class="card mb-6 border-l-4 border-emerald-500">
             <div class="card-body">
                 <h4 class="font-bold text-emerald-700 dark:text-emerald-400 mb-3">
@@ -205,6 +226,8 @@
                         <i class="fas fa-redo"></i> Foto Ulang
                     </button>
                 </div>
+                {{-- Face Detection Status --}}
+                <div id="face-status" class="hidden mt-3"></div>
             </div>
         </div>
 
@@ -259,6 +282,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script>
         // Camera Elements
         const video = document.getElementById('video');
@@ -278,6 +302,102 @@
         let isPhotoTaken = false;
         let isLocationValid = false;
 
+        // Face Detection Setup (face-api.js)
+        const faceStatus = document.getElementById('face-status');
+        let faceModelLoaded = false;
+
+        // Load face detection model dari CDN
+        async function loadFaceModel() {
+            try {
+                const MODEL_URL = '/vendor/face-api/models';
+                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                faceModelLoaded = true;
+                console.log('Face detection model loaded ✓');
+            } catch (e) {
+                console.warn('Gagal load face detection model:', e);
+                faceModelLoaded = false;
+            }
+        }
+
+        // Penanganan inisialisasi asinkron yang aman untuk Turbo
+        async function initFaceApi() {
+            if (typeof faceapi !== 'undefined') {
+                await loadFaceModel();
+                return;
+            }
+
+            // Cek apakah tag script face-api sedang dimuat di DOM
+            let script = document.querySelector('script[src*="face-api.min.js"]') || document.querySelector('script[src*="face-api.js"]');
+            if (!script) {
+                script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
+                script.async = true;
+                document.head.appendChild(script);
+            }
+
+            script.addEventListener('load', async () => {
+                await loadFaceModel();
+            });
+
+            // Pengaman (Polling Backup): jika event listener terlewat karena script selesai dimuat sangat cepat
+            let attempts = 0;
+            const interval = setInterval(async () => {
+                attempts++;
+                if (typeof faceapi !== 'undefined') {
+                    clearInterval(interval);
+                    if (!faceModelLoaded) {
+                        await loadFaceModel();
+                    }
+                }
+                if (attempts > 30) { // maksimal 3 detik
+                    clearInterval(interval);
+                }
+            }, 100);
+        }
+        initFaceApi();
+
+        async function detectFace(canvasEl) {
+            if (!faceModelLoaded) {
+                return { detected: true, fallback: true, count: 0 };
+            }
+            try {
+                const detections = await faceapi.detectAllFaces(canvasEl, new faceapi.TinyFaceDetectorOptions({
+                    inputSize: 320,
+                    scoreThreshold: 0.5
+                }));
+                return { detected: detections.length > 0, fallback: false, count: detections.length };
+            } catch (e) {
+                console.error('Face detection error:', e);
+                return { detected: true, fallback: true, count: 0 };
+            }
+        }
+
+        function showFaceStatus(result) {
+            faceStatus.classList.remove('hidden');
+            if (result.fallback) {
+                faceStatus.innerHTML = `
+                    <div class="flex items-center gap-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Model deteksi wajah gagal dimuat. Pastikan foto selfie Anda.</span>
+                    </div>
+                `;
+            } else if (result.detected) {
+                faceStatus.innerHTML = `
+                    <div class="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Wajah terdeteksi ✓</span>
+                    </div>
+                `;
+            } else {
+                faceStatus.innerHTML = `
+                    <div class="flex items-center gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Wajah tidak terdeteksi! Silakan ambil foto ulang dengan wajah terlihat jelas.</span>
+                    </div>
+                `;
+            }
+        }
+
         // Camera Logic
         startBtn.addEventListener('click', async () => {
             try {
@@ -287,12 +407,13 @@
                 placeholder.classList.add('hidden');
                 startBtn.classList.add('hidden');
                 snapBtn.classList.remove('hidden');
+                faceStatus.classList.add('hidden');
             } catch (err) {
                 alert("Gagal mengakses kamera: " + err.message);
             }
         });
 
-        snapBtn.addEventListener('click', () => {
+        snapBtn.addEventListener('click', async () => {
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -303,15 +424,36 @@
             snapBtn.classList.add('hidden');
             retakeBtn.classList.remove('hidden');
 
-            canvas.toBlob((blob) => {
-                const file = new File([blob], "attendance_photo.jpg", { type: "image/jpeg" });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                photoInput.files = dataTransfer.files;
-                
-                isPhotoTaken = true;
+            // Tampilkan loading saat deteksi wajah
+            faceStatus.classList.remove('hidden');
+            faceStatus.innerHTML = `
+                <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-sm">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Mendeteksi wajah...</span>
+                </div>
+            `;
+
+            // Jalankan face detection
+            const result = await detectFace(canvas);
+            showFaceStatus(result);
+
+            if (result.detected) {
+                // Wajah terdeteksi (atau fallback) → simpan foto
+                canvas.toBlob((blob) => {
+                    const file = new File([blob], "attendance_photo.jpg", { type: "image/jpeg" });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    photoInput.files = dataTransfer.files;
+                    
+                    isPhotoTaken = true;
+                    checkReady();
+                }, 'image/jpeg');
+            } else {
+                // Wajah tidak terdeteksi → jangan izinkan submit
+                isPhotoTaken = false;
+                photoInput.value = '';
                 checkReady();
-            }, 'image/jpeg');
+            }
         });
 
         retakeBtn.addEventListener('click', () => {
@@ -319,6 +461,7 @@
             video.classList.remove('hidden');
             retakeBtn.classList.add('hidden');
             snapBtn.classList.remove('hidden');
+            faceStatus.classList.add('hidden');
             isPhotoTaken = false;
             photoInput.value = "";
             checkReady();
@@ -401,7 +544,7 @@
                 mockWarning = `
                     <div class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded text-red-700 dark:text-red-400 text-xs">
                         <i class="fas fa-exclamation-triangle mr-1"></i>
-                        Terdeteksi indikasi lokasi palsu (fake GPS). Absensi akan ditolak.
+                        Terdeteksi indikasi lokasi palsu (fake GPS). Presensi akan ditolak.
                     </div>
                 `;
                 // Block submission

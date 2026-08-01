@@ -1,0 +1,262 @@
+// DBML Specification for tvri_absensi
+// Copy-paste this code to https://dbdiagram.io to visualize the interactive ERD.
+
+Table users {
+  id bigint [pk, increment]
+  name varchar(255)
+  email varchar(255) [unique]
+  profile_photo varchar(255) [null]
+  signature varchar(255) [null]
+  role "enum('admin','staff_psdm','staff_keuangan','user')" [default: "user"]
+  nip varchar(18)
+  email_verified_at timestamp [null]
+  password varchar(255)
+  remember_token varchar(100) [null]
+  two_factor_secret varchar(255) [null]
+  two_factor_enabled tinyint(1) [default: 0]
+  two_factor_recovery_codes text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table employee_profiles {
+  id bigint [pk, increment]
+  user_id bigint [unique]
+  nik varchar(16)
+  alamat text [null]
+  no_telepon varchar(20) [null]
+  tanggal_lahir date [null]
+  jenis_kelamin "enum('L','P')" [null]
+  jabatan_id bigint [null]
+  bagian_id bigint [null]
+  status_pegawai_id bigint [null]
+  status_operasional_id bigint [null]
+  attendance_type "enum('normal','shift','umum')" [default: "normal"]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table shifts {
+  id bigint [pk, increment]
+  name varchar(255)
+  type varchar(255)
+  start_time time
+  end_time time
+  tolerance_minutes int [default: 30]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table attendances {
+  id bigint [pk, increment]
+  user_id bigint
+  shift_id bigint [null]
+  leave_id bigint [null]
+  business_trip_id bigint [null]
+  attendance_type "enum('normal','shift','umum')" [default: "normal"]
+  photo_path varchar(255)
+  check_out_photo_path varchar(255) [null]
+  check_in_time datetime [null]
+  work_date date [null]
+  check_out_time datetime [null]
+  min_check_out_time datetime [null]
+  max_check_out_time datetime [null]
+  latitude decimal(10,8)
+  longitude decimal(11,8)
+  location_accuracy double [null]
+  check_out_latitude decimal(10,8) [null]
+  check_out_longitude decimal(11,8) [null]
+  check_out_location_accuracy double [null]
+  is_mock_location tinyint(1) [default: 0]
+  status varchar(255) [default: "present"]
+  manual_reason varchar(255) [null]
+  created_by bigint [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table leaves {
+  id bigint [pk, increment]
+  user_id bigint
+  start_date date
+  end_date date
+  reason text
+  attachment varchar(255) [null]
+  type "enum('cuti_tahunan','sakit','izin','lainnya')" [default: "cuti_tahunan"]
+  status "enum('pending','approved','rejected')" [default: "pending"]
+  approved_by bigint [null]
+  rejection_reason text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table business_trips {
+  id bigint [pk, increment]
+  user_id bigint
+  start_date date
+  end_date date
+  destination varchar(255)
+  purpose text
+  attachment varchar(255) [null]
+  status "enum('pending','approved','rejected')" [default: "pending"]
+  approved_by bigint [null]
+  rejection_reason text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table salaries {
+  id bigint [pk, increment]
+  user_id bigint
+  month int
+  year int
+  base_salary decimal(15,2) [default: 0.00]
+  potongan_kppn decimal(15,2) [default: 0.00]
+  total_potongan_intern decimal(15,2) [default: 0.00]
+  deductions decimal(15,2) [default: 0.00]
+  final_salary decimal(15,2) [default: 0.00]
+  created_by bigint [null]
+  status "enum('draft','approved','paid')" [default: "draft"]
+  signed_by bigint [null]
+  signed_at timestamp [null]
+  notes text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table deduction_types {
+  id bigint [pk, increment]
+  name varchar(255)
+  description text [null]
+  is_active tinyint(1) [default: 1]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+}
+
+Table salary_deductions {
+  id bigint [pk, increment]
+  salary_id bigint
+  deduction_type_id bigint
+  amount decimal(15,2) [default: 0.00]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table announcements {
+  id bigint [pk, increment]
+  title varchar(255)
+  content text
+  created_by bigint
+  is_active tinyint(1) [default: 1]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table notifications {
+  id bigint [pk, increment]
+  user_id bigint
+  type varchar(255)
+  icon varchar(255) [default: "fa-bell"]
+  color varchar(255) [default: "text-gray-500"]
+  message varchar(255)
+  detail varchar(255) [null]
+  url varchar(255) [null]
+  read_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table shift_logs {
+  id bigint [pk, increment]
+  shift_id bigint
+  changed_by bigint
+  field_name varchar(255)
+  old_value varchar(255)
+  new_value varchar(255)
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table activity_logs {
+  id bigint [pk, increment]
+  user_id bigint [null]
+  action varchar(255)
+  model_type varchar(255)
+  model_id bigint [null]
+  description text
+  old_values longtext [null]
+  new_values longtext [null]
+  ip_address varchar(255) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table master_data {
+  id bigint [pk, increment]
+  type "enum('jabatan','bagian','status_pegawai','status_operasional')"
+  value varchar(255)
+  description varchar(255) [null]
+  is_active tinyint(1) [default: 1]
+  sort_order int [default: 0]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table settings {
+  id bigint [pk, increment]
+  key varchar(255) [unique]
+  value text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table sessions {
+  id varchar(255) [pk]
+  user_id bigint [null]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  payload longtext
+  last_activity int
+}
+
+Table password_reset_tokens {
+  email varchar(255) [pk]
+  token varchar(255)
+  created_at timestamp [null]
+}
+
+// Relationships & Foreign Keys
+Ref: attendances.user_id > users.id [delete: cascade]
+Ref: attendances.shift_id > shifts.id [delete: set null]
+Ref: attendances.leave_id > leaves.id [delete: set null]
+Ref: attendances.business_trip_id > business_trips.id [delete: set null]
+Ref: attendances.created_by > users.id [delete: set null]
+
+Ref: leaves.user_id > users.id [delete: cascade]
+Ref: leaves.approved_by > users.id [delete: set null]
+
+Ref: business_trips.user_id > users.id [delete: cascade]
+Ref: business_trips.approved_by > users.id [delete: set null]
+
+Ref: salaries.user_id > users.id [delete: cascade]
+Ref: salaries.created_by > users.id [delete: set null]
+Ref: salaries.signed_by > users.id [delete: set null]
+
+Ref: salary_deductions.salary_id > salaries.id [delete: cascade]
+Ref: salary_deductions.deduction_type_id > deduction_types.id [delete: cascade]
+
+Ref: announcements.created_by > users.id [delete: cascade]
+
+Ref: notifications.user_id > users.id [delete: cascade]
+
+Ref: shift_logs.shift_id > shifts.id [delete: cascade]
+Ref: shift_logs.changed_by > users.id [delete: cascade]
+
+Ref: activity_logs.user_id > users.id [delete: cascade]
+
+Ref: employee_profiles.user_id - users.id [delete: cascade]
+Ref: employee_profiles.jabatan_id > master_data.id [delete: set null]
+Ref: employee_profiles.bagian_id > master_data.id [delete: set null]
+Ref: employee_profiles.status_pegawai_id > master_data.id [delete: set null]
+Ref: employee_profiles.status_operasional_id > master_data.id [delete: set null]

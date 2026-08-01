@@ -25,7 +25,7 @@ class AttendanceController extends Controller
         
         // Get today's attendance record
         $todayAttendance = Attendance::where('user_id', $user->id)
-            ->whereDate('check_in_time', $today)
+            ->where('work_date', $today->toDateString())
             ->first();
         
         // Get settings for location validation
@@ -56,7 +56,7 @@ class AttendanceController extends Controller
             } elseif (!$todayAttendance->check_out_time) {
                 $statusMessage = $checkOutStatus['message'];
             } else {
-                $statusMessage = 'Anda sudah menyelesaikan absensi hari ini. Sampai jumpa besok!';
+                $statusMessage = 'Anda sudah menyelesaikan presensi hari ini. Sampai jumpa besok!';
             }
         }
         
@@ -93,7 +93,7 @@ class AttendanceController extends Controller
         
         // Reject if client detected mock location
         if ($isMock) {
-            return back()->with('error', 'Terdeteksi penggunaan lokasi palsu (fake GPS). Absensi ditolak!');
+            return back()->with('error', 'Terdeteksi penggunaan lokasi palsu (fake GPS). Presensi ditolak!');
         }
         
         // Reject if accuracy is exactly 0 (strong indicator of mock)
@@ -173,7 +173,7 @@ class AttendanceController extends Controller
         $isMock = (bool) $request->is_mock_location;
         
         if ($isMock) {
-            return back()->with('error', 'Terdeteksi penggunaan lokasi palsu (fake GPS). Absensi ditolak!');
+            return back()->with('error', 'Terdeteksi penggunaan lokasi palsu (fake GPS). Presensi ditolak!');
         }
         
         if ($accuracy == 0) {

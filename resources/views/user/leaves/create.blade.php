@@ -23,7 +23,7 @@
                             <option value="">-- Pilih Jenis Cuti --</option>
                             <option value="cuti_tahunan" {{ old('type') === 'cuti_tahunan' ? 'selected' : '' }}>Cuti Tahunan</option>
                             <option value="sakit" {{ old('type') === 'sakit' ? 'selected' : '' }}>Sakit</option>
-                            <option value="alasan_penting" {{ old('type') === 'alasan_penting' ? 'selected' : '' }}>Alasan Penting</option>
+                            <option value="izin" {{ old('type') === 'izin' ? 'selected' : '' }}>Izin</option>
                             <option value="lainnya" {{ old('type') === 'lainnya' ? 'selected' : '' }}>Lainnya</option>
                         </select>
                         @error('type')<p class="form-error">{{ $message }}</p>@enderror

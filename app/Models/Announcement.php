@@ -21,7 +21,7 @@ class Announcement extends Model
     ];
 
     /**
-     * Get the user who created the announcement
+     * Dapatkan pengguna yang membuat pengumuman
      */
     public function creator()
     {
@@ -29,7 +29,7 @@ class Announcement extends Model
     }
 
     /**
-     * Scope to get only active announcements
+     * Scope untuk mendapatkan pengumuman yang aktif saja
      */
     public function scopeActive($query)
     {

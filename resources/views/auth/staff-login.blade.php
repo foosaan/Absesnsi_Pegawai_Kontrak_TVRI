@@ -3,11 +3,12 @@
         <div class="card-body">
             {{-- Header --}}
             <div class="mb-6 text-center">
-                <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+                <div
+                    class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
                     <i class="fas fa-user-tie text-2xl text-emerald-600 dark:text-emerald-400"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Login Staff</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Masuk sebagai Staff PSDM / Keuangan</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Masuk sebagai Staff</p>
             </div>
 
             {{-- Session Status --}}
@@ -39,19 +40,10 @@
                         <span class="form-control-icon">
                             <i class="fas fa-id-card"></i>
                         </span>
-                        <input 
-                            id="nip"
-                            type="text" 
-                            name="nip" 
-                            value="{{ old('nip') }}"
-                            class="form-control form-control-with-icon" 
-                            placeholder="Masukkan NIP Anda"
-                            inputmode="numeric"
-                            pattern="[0-9]*"
-                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                            required 
-                            autofocus
-                        >
+                        <input id="nip" type="text" name="nip" value="{{ old('nip') }}"
+                            class="form-control form-control-with-icon" placeholder="Masukkan NIP Anda"
+                            inputmode="numeric" pattern="[0-9]*"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="18" required autofocus>
                     </div>
                 </div>
 
@@ -62,15 +54,11 @@
                         <span class="form-control-icon">
                             <i class="fas fa-lock"></i>
                         </span>
-                        <input 
-                            id="password"
-                            :type="show ? 'text' : 'password'" 
-                            name="password" 
-                            class="form-control form-control-with-icon pr-10" 
-                            placeholder="••••••••"
-                            required 
-                        >
-                        <button type="button" @click="show = !show" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+                        <input id="password" :type="show ? 'text' : 'password'" name="password"
+                            class="form-control form-control-with-icon pr-10" placeholder="••••••••" required>
+                        <button type="button" @click="show = !show"
+                            style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
                             <i :class="show ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                         </button>
                     </div>
@@ -79,11 +67,8 @@
                 {{-- Remember Me --}}
                 <div class="form-field">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            name="remember" 
-                            class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700"
-                        >
+                        <input type="checkbox" name="remember"
+                            class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700">
                         <span class="text-sm text-gray-600 dark:text-slate-300">Ingat saya</span>
                     </label>
                 </div>
@@ -99,7 +84,8 @@
                 {{-- Links --}}
                 <div class="mt-4 flex flex-col items-center gap-2 text-sm">
                     @if(Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                        <a href="{{ route('password.request') }}"
+                            class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
                             Lupa password?
                         </a>
                     @endif

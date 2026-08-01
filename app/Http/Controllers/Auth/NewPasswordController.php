@@ -7,7 +7,9 @@ use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
@@ -33,7 +35,7 @@ class NewPasswordController extends Controller
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'string', 'max:20', 'confirmed', Rules\Password::defaults()],
         ]);
 
         // Here we will attempt to reset the user's password. If it is successful we
@@ -47,6 +49,21 @@ class NewPasswordController extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
+                // Invalidate all existing sessions for this user
+                DB::table('sessions')
+                    ->where('user_id', $user->id)
+                    ->delete();
+
+                // Log the password reset
+                Log::info('Password reset completed', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'nip' => $user->nip,
+                    'role' => $user->role,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
                 event(new PasswordReset($user));
             }
         );
@@ -55,7 +72,7 @@ class NewPasswordController extends Controller
         // the application's home authenticated view. If there is an error we can
         // redirect them back to where they came from with their error message.
         return $status == Password::PASSWORD_RESET
-                    ? redirect()->route('login')->with('status', __($status))
+                    ? redirect()->route('login')->with('status', 'Password berhasil direset! Silakan login dengan password baru Anda.')
                     : back()->withInput($request->only('email'))
                         ->withErrors(['email' => __($status)]);
     }

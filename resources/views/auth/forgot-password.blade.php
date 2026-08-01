@@ -5,7 +5,7 @@
             <div class="mb-6 text-center">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Lupa Password?</h2>
                 <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                    Masukkan email Anda dan kami akan mengirimkan link reset password.
+                    Masukkan NIP Anda dan kami akan mengirimkan link reset password.
                 </p>
             </div>
 
@@ -30,23 +30,16 @@
             <form method="POST" action="{{ route('password.email') }}">
                 @csrf
 
-                {{-- Email --}}
+                {{-- Email atau NIP --}}
                 <div class="form-field">
-                    <label for="email" class="form-label">Email</label>
+                    <label for="identifier" class="form-label">Masukkan Email Anda</label>
                     <div class="relative">
                         <span class="form-control-icon">
-                            <i class="fas fa-envelope"></i>
+                            <i class="fas fa-user"></i>
                         </span>
-                        <input 
-                            id="email"
-                            type="email" 
-                            name="email" 
-                            value="{{ old('email') }}"
-                            class="form-control form-control-with-icon" 
-                            placeholder="nama@email.com"
-                            required 
-                            autofocus
-                        >
+                        <input id="identifier" type="text" name="identifier" value="{{ old('identifier') }}"
+                            class="form-control form-control-with-icon" placeholder="Masukkan email Anda" required
+                            autofocus>
                     </div>
                 </div>
 

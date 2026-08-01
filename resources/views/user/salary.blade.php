@@ -69,7 +69,7 @@
                                     </div>
                                     <div class="flex items-center gap-2">
                                         @if($salary->isSigned())
-                                            <span class="badge badge-success text-xs"><i class="fas fa-check-circle mr-1"></i>Signed</span>
+                                            <span class="badge badge-success text-xs"><i class="fas fa-check-circle mr-1"></i>Dibayar</span>
                                             <a href="{{ route('user.salary.pdf', $salary) }}" class="btn btn-sm btn-success inline-flex items-center gap-1.5">
                                                 <i class="fas fa-file-pdf text-xs"></i> Export PDF
                                             </a>

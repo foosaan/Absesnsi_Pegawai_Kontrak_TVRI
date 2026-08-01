@@ -18,7 +18,7 @@ class ShiftLog extends Model
     ];
 
     /**
-     * Get the shift that was changed
+     * Dapatkan shift yang diubah
      */
     public function shift()
     {
@@ -26,7 +26,7 @@ class ShiftLog extends Model
     }
 
     /**
-     * Get the user who made the change
+     * Dapatkan pengguna yang melakukan perubahan
      */
     public function changedByUser()
     {
@@ -34,7 +34,7 @@ class ShiftLog extends Model
     }
 
     /**
-     * Get human-readable field name
+     * Dapatkan nama field yang dapat dibaca manusia
      */
     public function getFieldLabelAttribute(): string
     {

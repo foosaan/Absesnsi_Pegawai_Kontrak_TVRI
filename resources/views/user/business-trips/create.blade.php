@@ -101,7 +101,7 @@
                         <h4 class="font-bold mb-2"><i class="fas fa-info-circle mr-1"></i>Informasi:</h4>
                         <ul class="text-sm space-y-1">
                             <li>• Pengajuan dinas luar akan diproses oleh Staff PSDM</li>
-                            <li>• Selama dinas luar, status absensi Anda otomatis menjadi "Dinas Luar"</li>
+                            <li>• Selama dinas luar, status presensi Anda otomatis menjadi "Dinas Luar"</li>
                             <li>• Anda dapat membatalkan pengajuan selama status masih "Menunggu"</li>
                             <li>• Lampirkan surat tugas jika tersedia</li>
                         </ul>

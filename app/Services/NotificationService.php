@@ -38,6 +38,9 @@ class NotificationService
             $leave->start_date->format('d M') . ' - ' . $leave->end_date->format('d M Y'),
             route('user.leaves')
         );
+
+        // Auto-read notifikasi pending_leave di semua staff
+        self::markRelatedAsRead('pending_leave', $leave->user->name);
     }
 
     /**
@@ -55,6 +58,9 @@ class NotificationService
             $trip->start_date->format('d M') . ' - ' . $trip->end_date->format('d M Y'),
             route('user.business-trips')
         );
+
+        // Auto-read notifikasi pending_trip di semua staff
+        self::markRelatedAsRead('pending_trip', $trip->user->name);
     }
 
     /**
@@ -69,6 +75,22 @@ class NotificationService
             'text-emerald-500',
             'Slip gaji ' . $salary->period . ' tersedia',
             'Gaji pokok: Rp ' . number_format($salary->base_salary, 0, ',', '.'),
+            route('user.salary')
+        );
+    }
+
+    /**
+     * Notify user: salary slip has been signed (ready for PDF download)
+     */
+    public static function salarySigned(\App\Models\Salary $salary): void
+    {
+        self::send(
+            $salary->user_id,
+            'salary_signed',
+            'fa-file-signature',
+            'text-emerald-500',
+            'Slip gaji ' . $salary->period . ' sudah ditandatangani',
+            'Gaji diterima: Rp ' . number_format($salary->final_salary, 0, ',', '.') . ' — Siap download PDF',
             route('user.salary')
         );
     }
@@ -128,5 +150,16 @@ class NotificationService
                 route('staff.psdm.business-trips', ['status' => 'pending'])
             );
         }
+    }
+
+    /**
+     * Tandai semua notifikasi terkait sebagai dibaca (untuk semua staff)
+     */
+    public static function markRelatedAsRead(string $type, string $userName): void
+    {
+        Notification::where('type', $type)
+            ->where('message', 'like', '%' . $userName . '%')
+            ->unread()
+            ->update(['read_at' => now()]);
     }
 }

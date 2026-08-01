@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Password;
 use App\Models\Shift;
 use App\Models\ShiftLog;
 
@@ -10,28 +11,29 @@ class AdminController extends Controller
 {
     public function index(\Illuminate\Http\Request $request)
     {
-        $query = \App\Models\Attendance::with(['user', 'shift'])->latest();
-        
-        // Filter by date
-        if ($request->filled('filter_date')) {
-            $query->whereDate('check_in_time', $request->filter_date);
-        }
-        
-        // Filter by user
-        if ($request->filled('filter_user')) {
-            $query->where('user_id', $request->filter_user);
-        }
-        
-        $attendances = $query->get();
         $settings = \Illuminate\Support\Facades\DB::table('settings')->pluck('value', 'key');
-        $users = \App\Models\User::where('role', 'user')->get();
-        $shifts = Shift::all();
-        $shiftLogs = ShiftLog::with(['shift', 'changedByUser'])
-            ->latest()
-            ->take(20)
-            ->get();
+        $shiftsCount = Shift::count();
         
-        return view('admin.dashboard', compact('attendances', 'settings', 'users', 'shifts', 'shiftLogs'));
+        $totalAdmins = \App\Models\User::where('role', 'admin')->count();
+        $totalPsdm = \App\Models\User::where('role', 'staff_psdm')->count();
+        $totalKeuangan = \App\Models\User::where('role', 'staff_keuangan')->count();
+        $totalPegawai = \App\Models\User::where('role', 'user')->count();
+
+        // Recent activity logs across the system
+        $activityLogs = \App\Models\ActivityLog::with('user')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('admin.dashboard', compact(
+            'settings', 
+            'shiftsCount', 
+            'totalAdmins', 
+            'totalPsdm', 
+            'totalKeuangan', 
+            'totalPegawai',
+            'activityLogs'
+        ));
     }
 
     public function manualCheckIn(\Illuminate\Http\Request $request)
@@ -43,23 +45,41 @@ class AdminController extends Controller
         ]);
 
         $today = \Carbon\Carbon::today();
-        $user = User::findOrFail($request->user_id);
+        $user = \App\Models\User::findOrFail($request->user_id);
         
         // Check if user already has attendance today
         $existing = \App\Models\Attendance::where('user_id', $request->user_id)
-            ->whereDate('check_in_time', $today)
+            ->where('work_date', $today->toDateString())
             ->first();
         
         if ($existing) {
-            return back()->with('error', 'User sudah memiliki absensi hari ini!');
+            return back()->with('error', 'User sudah memiliki presensi hari ini!');
         }
 
-        // Use AttendanceService to get shift and calculate times
         $attendanceService = app(\App\Services\AttendanceService::class);
         $checkInTime = \Carbon\Carbon::parse($today->format('Y-m-d') . ' ' . $request->check_in_time);
-        $shift = $attendanceService->getApplicableShift($user, $checkInTime);
         $isLate = $request->status === 'late';
-        
+
+        // Tipe Umum: tidak ada shift, tidak ada batas max, tidak pernah late
+        if ($user->isUmumAttendance()) {
+            \App\Models\Attendance::create([
+                'user_id'           => $request->user_id,
+                'shift_id'          => null,
+                'attendance_type'   => 'umum',
+                'photo_path'        => 'manual/admin_input.png',
+                'check_in_time'     => $checkInTime,
+                'work_date'         => $today->toDateString(),
+                'min_check_out_time'=> $checkInTime->copy()->addHours(8),
+                'max_check_out_time'=> null,
+                'latitude'          => 0,
+                'longitude'         => 0,
+                'status'            => 'present',
+            ]);
+            return back()->with('success', 'Presensi Manual (Umum) Berhasil Ditambahkan!');
+        }
+
+        // Normal / Shift
+        $shift = $attendanceService->getApplicableShift($user, $checkInTime);
         $minCheckOutTime = null;
         $maxCheckOutTime = null;
         if ($shift) {
@@ -68,19 +88,20 @@ class AdminController extends Controller
         }
 
         \App\Models\Attendance::create([
-            'user_id' => $request->user_id,
-            'shift_id' => $shift?->id,
-            'attendance_type' => $user->isNormalAttendance() ? 'normal' : 'shift',
-            'photo_path' => 'manual/admin_input.png',
-            'check_in_time' => $checkInTime,
-            'min_check_out_time' => $minCheckOutTime,
-            'max_check_out_time' => $maxCheckOutTime,
-            'latitude' => 0,
-            'longitude' => 0,
-            'status' => $request->status,
+            'user_id'           => $request->user_id,
+            'shift_id'          => $shift?->id,
+            'attendance_type'   => $user->isNormalAttendance() ? 'normal' : 'shift',
+            'photo_path'        => 'manual/admin_input.png',
+            'check_in_time'     => $checkInTime,
+            'work_date'         => $today->toDateString(),
+            'min_check_out_time'=> $minCheckOutTime,
+            'max_check_out_time'=> $maxCheckOutTime,
+            'latitude'          => 0,
+            'longitude'         => 0,
+            'status'            => $request->status,
         ]);
 
-        return back()->with('success', 'Absensi Manual Berhasil Ditambahkan!');
+        return back()->with('success', 'Presensi Manual Berhasil Ditambahkan!');
     }
 
     public function settings()
@@ -92,7 +113,12 @@ class AdminController extends Controller
             ->take(20)
             ->get();
 
-        return view('admin.settings', compact('settings', 'shifts', 'shiftLogs'));
+        // Get the admin who last updated the location settings
+        $latSetting = \Illuminate\Support\Facades\DB::table('settings')->where('key', 'office_latitude')->first();
+        $updater = $latSetting && $latSetting->updated_by ? \App\Models\User::find($latSetting->updated_by) : null;
+        $updatedAt = $latSetting ? $latSetting->updated_at : null;
+
+        return view('admin.settings', compact('settings', 'shifts', 'shiftLogs', 'updater', 'updatedAt'));
     }
 
     public function updateSettings(\Illuminate\Http\Request $request)
@@ -109,9 +135,33 @@ class AdminController extends Controller
             'allowed_radius_meters',
         ];
 
+        // Capture old values for audit logging
+        $oldSettings = \Illuminate\Support\Facades\DB::table('settings')
+            ->whereIn('key', $keys)
+            ->pluck('value', 'key')
+            ->toArray();
+
         foreach ($request->only($keys) as $key => $value) {
-            \Illuminate\Support\Facades\DB::table('settings')->where('key', $key)->update(['value' => $value]);
+            \Illuminate\Support\Facades\DB::table('settings')->where('key', $key)->update([
+                'value' => $value,
+                'updated_by' => auth()->id(),
+                'updated_at' => now()
+            ]);
         }
+
+        $newSettings = $request->only($keys);
+
+        // Record log to ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update',
+            'model_type' => 'Setting',
+            'model_id' => null,
+            'description' => 'Mengubah koordinat lokasi kantor & radius presensi',
+            'old_values' => $oldSettings,
+            'new_values' => $newSettings,
+            'ip_address' => request()->ip(),
+        ]);
 
         return back()->with('success', 'Pengaturan Lokasi Berhasil Diupdate!');
     }
@@ -123,6 +173,36 @@ class AdminController extends Controller
             'end_time' => 'required',
             'tolerance_minutes' => 'required|integer|min:0|max:120',
         ]);
+
+        // Validasi durasi shift harus tepat 8 jam (480 menit)
+        // Toleransi 479 menit untuk Shift 3 yang berakhir 23:59
+        $start = \Carbon\Carbon::createFromFormat('H:i', $request->start_time);
+        $end = \Carbon\Carbon::createFromFormat('H:i', $request->end_time);
+
+        // Jika jam selesai lebih kecil dari jam mulai, berarti melewati tengah malam
+        if ($end->lte($start)) {
+            $end->addDay();
+        }
+
+        $durasiMenit = $start->diffInMinutes($end);
+
+        // Validasi batas bawah (Minimal 8 Jam)
+        if ($durasiMenit < 479) {
+            $jam = floor($durasiMenit / 60);
+            $menit = $durasiMenit % 60;
+            return back()->withErrors([
+                'end_time' => "Durasi shift terlalu pendek ({$jam} jam {$menit} menit). Harus tepat 8 jam."
+            ])->withInput();
+        }
+
+        // Validasi batas atas (Maksimal 8 Jam)
+        if ($durasiMenit > 480) {
+            $jam = floor($durasiMenit / 60);
+            $menit = $durasiMenit % 60;
+            return back()->withErrors([
+                'end_time' => "Durasi shift terlalu panjang ({$jam} jam {$menit} menit). Harus tepat 8 jam."
+            ])->withInput();
+        }
 
         // Get old values for logging
         $oldStartTime = $shift->start_time instanceof \Carbon\Carbon 
@@ -140,6 +220,7 @@ class AdminController extends Controller
             'tolerance_minutes' => ['old' => (string) $oldTolerance, 'new' => (string) $request->tolerance_minutes],
         ];
 
+        $hasChanges = false;
         foreach ($fieldsToCheck as $fieldName => $values) {
             if ($values['old'] !== $values['new']) {
                 ShiftLog::create([
@@ -149,7 +230,30 @@ class AdminController extends Controller
                     'old_value' => $values['old'],
                     'new_value' => $values['new'],
                 ]);
+                $hasChanges = true;
             }
+        }
+
+        if ($hasChanges) {
+            // Record log to ActivityLog
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'update',
+                'model_type' => get_class($shift),
+                'model_id' => $shift->id,
+                'description' => "Mengubah pengaturan Shift '{$shift->name}'",
+                'old_values' => [
+                    'start_time' => $oldStartTime,
+                    'end_time' => $oldEndTime,
+                    'tolerance_minutes' => $oldTolerance
+                ],
+                'new_values' => [
+                    'start_time' => $request->start_time,
+                    'end_time' => $request->end_time,
+                    'tolerance_minutes' => $request->tolerance_minutes
+                ],
+                'ip_address' => request()->ip(),
+            ]);
         }
 
         // Update the shift
@@ -202,18 +306,37 @@ class AdminController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'nip' => 'nullable|string|max:30|unique:users,nip',
+            'nip' => 'nullable|string|regex:/^[0-9]{18}$/|unique:users,nip',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'max:20', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
             'role' => 'required|in:admin,staff_psdm,staff_keuangan',
+        ], [
+            'nip.regex' => 'NIP harus berupa 18 digit angka.',
         ]);
 
-        \App\Models\User::create([
+        $staff = \App\Models\User::create([
             'name' => $request->name,
             'nip' => $request->nip,
             'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'password' => $request->password,
             'role' => $request->role,
+        ]);
+
+        // Record log to ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'create',
+            'model_type' => get_class($staff),
+            'model_id' => $staff->id,
+            'description' => "Menambahkan staff baru: '{$staff->name}' ({$staff->role})",
+            'old_values' => null,
+            'new_values' => [
+                'name' => $staff->name,
+                'nip' => $staff->nip,
+                'email' => $staff->email,
+                'role' => $staff->role
+            ],
+            'ip_address' => request()->ip(),
         ]);
 
         return redirect()->route('admin.staffs')
@@ -242,11 +365,20 @@ class AdminController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'nip' => 'nullable|string|max:30|unique:users,nip,' . $user->id,
+            'nip' => 'nullable|string|regex:/^[0-9]{18}$/|unique:users,nip,' . $user->id,
             'email' => 'required|email|unique:users,email,' . $user->id,
             'role' => 'required|in:admin,staff_psdm,staff_keuangan',
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => ['nullable', 'string', 'max:20', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+        ], [
+            'nip.regex' => 'NIP harus berupa 18 digit angka.',
         ]);
+
+        $oldData = [
+            'name' => $user->name,
+            'nip' => $user->nip,
+            'email' => $user->email,
+            'role' => $user->role,
+        ];
 
         $data = [
             'name' => $request->name,
@@ -256,10 +388,27 @@ class AdminController extends Controller
         ];
 
         if ($request->filled('password')) {
-            $data['password'] = bcrypt($request->password);
+            $data['password'] = $request->password;
         }
 
         $user->update($data);
+
+        // Record log to ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update',
+            'model_type' => get_class($user),
+            'model_id' => $user->id,
+            'description' => "Memperbarui data staff: '{$user->name}'",
+            'old_values' => $oldData,
+            'new_values' => [
+                'name' => $user->name,
+                'nip' => $user->nip,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+            'ip_address' => request()->ip(),
+        ]);
 
         return redirect()->route('admin.staffs')
             ->with('success', 'Data staff berhasil diupdate!');
@@ -279,7 +428,26 @@ class AdminController extends Controller
             return back()->with('error', 'Tidak bisa menghapus akun Anda sendiri!');
         }
 
+        $oldData = [
+            'name' => $user->name,
+            'nip' => $user->nip,
+            'email' => $user->email,
+            'role' => $user->role,
+        ];
+
         $user->delete();
+
+        // Record log to ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'delete',
+            'model_type' => get_class($user),
+            'model_id' => $user->id,
+            'description' => "Menghapus staff: '{$user->name}'",
+            'old_values' => $oldData,
+            'new_values' => null,
+            'ip_address' => request()->ip(),
+        ]);
 
         return redirect()->route('admin.staffs')
             ->with('success', 'Staff berhasil dihapus!');
@@ -322,17 +490,36 @@ class AdminController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'nip' => 'nullable|string|max:30|unique:users,nip',
+            'nip' => 'nullable|string|regex:/^[0-9]{18}$/|unique:users,nip',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'max:20', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+        ], [
+            'nip.regex' => 'NIP harus berupa 18 digit angka.',
         ]);
 
-        \App\Models\User::create([
+        $admin = \App\Models\User::create([
             'name' => $request->name,
             'nip' => $request->nip,
             'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'password' => $request->password,
             'role' => 'admin',
+        ]);
+
+        // Record log to ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'create',
+            'model_type' => get_class($admin),
+            'model_id' => $admin->id,
+            'description' => "Menambahkan admin baru: '{$admin->name}'",
+            'old_values' => null,
+            'new_values' => [
+                'name' => $admin->name,
+                'nip' => $admin->nip,
+                'email' => $admin->email,
+                'role' => $admin->role
+            ],
+            'ip_address' => request()->ip(),
         ]);
 
         return redirect()->route('admin.admins')
@@ -361,10 +548,19 @@ class AdminController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'nip' => 'nullable|string|max:30|unique:users,nip,' . $user->id,
+            'nip' => 'nullable|string|regex:/^[0-9]{18}$/|unique:users,nip,' . $user->id,
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => ['nullable', 'string', 'max:20', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+        ], [
+            'nip.regex' => 'NIP harus berupa 18 digit angka.',
         ]);
+
+        $oldData = [
+            'name' => $user->name,
+            'nip' => $user->nip,
+            'email' => $user->email,
+            'role' => $user->role,
+        ];
 
         $data = [
             'name' => $request->name,
@@ -373,10 +569,27 @@ class AdminController extends Controller
         ];
 
         if ($request->filled('password')) {
-            $data['password'] = bcrypt($request->password);
+            $data['password'] = $request->password;
         }
 
         $user->update($data);
+
+        // Record log to ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update',
+            'model_type' => get_class($user),
+            'model_id' => $user->id,
+            'description' => "Memperbarui data admin: '{$user->name}'",
+            'old_values' => $oldData,
+            'new_values' => [
+                'name' => $user->name,
+                'nip' => $user->nip,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+            'ip_address' => request()->ip(),
+        ]);
 
         return redirect()->route('admin.admins')
             ->with('success', 'Data admin berhasil diupdate!');
@@ -396,26 +609,45 @@ class AdminController extends Controller
             return back()->with('error', 'Tidak bisa menghapus akun Anda sendiri!');
         }
 
+        $oldData = [
+            'name' => $user->name,
+            'nip' => $user->nip,
+            'email' => $user->email,
+            'role' => $user->role,
+        ];
+
         $user->delete();
+
+        // Record log to ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'delete',
+            'model_type' => get_class($user),
+            'model_id' => $user->id,
+            'description' => "Menghapus admin: '{$user->name}'",
+            'old_values' => $oldData,
+            'new_values' => null,
+            'ip_address' => request()->ip(),
+        ]);
 
         return redirect()->route('admin.admins')
             ->with('success', 'Admin berhasil dihapus!');
     }
 
     /**
-     * Monitor absensi semua user (read-only overview)
+     * Monitor presensi semua user (read-only overview)
      */
     public function monitor(\Illuminate\Http\Request $request)
     {
         $query = \App\Models\Attendance::with(['user', 'shift'])->latest('check_in_time');
         
         if ($request->filled('date')) {
-            $query->whereDate('check_in_time', $request->date);
+            $query->where('work_date', $request->date);
         } elseif ($request->filled('month') || $request->filled('year')) {
             $month = $request->input('month', now()->month);
             $year = $request->input('year', now()->year);
-            $query->whereMonth('check_in_time', $month)
-                  ->whereYear('check_in_time', $year);
+            $query->whereMonth('work_date', $month)
+                  ->whereYear('work_date', $year);
         }
         
         if ($request->filled('status')) {
@@ -453,14 +685,14 @@ class AdminController extends Controller
     }
 
     /**
-     * Export rekap absensi ke Excel
+     * Export rekap presensi ke Excel
      */
     public function exportAttendance(\Illuminate\Http\Request $request)
     {
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
         
-        $filename = 'rekap_absensi_' . $month . '_' . $year . '.xlsx';
+        $filename = 'rekap_presensi_' . $month . '_' . $year . '.xlsx';
         
         return \Maatwebsite\Excel\Facades\Excel::download(
             new \App\Exports\AttendanceExport('month', ['month' => $month, 'year' => $year]), 
@@ -488,82 +720,6 @@ class AdminController extends Controller
         return view('admin.activity-logs', compact('logs'));
     }
 
-    /**
- * Master Data Management
- */
-public function masterData(\Illuminate\Http\Request $request)
-{
-    $currentScope = $request->get('scope', 'psdm');
-    $types = \App\Models\MasterDataType::where('scope', $currentScope)->withCount('values')->get();
-    return view('admin.master-data.index', compact('types', 'currentScope'));
 }
 
-    public function storeMasterDataType(\Illuminate\Http\Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'scope' => 'required|in:psdm,keuangan',
-        'description' => 'nullable|string|max:255',
-    ]);
-
-    \App\Models\MasterDataType::create([
-        'name' => $request->name,
-        'scope' => $request->scope,
-        'description' => $request->description,
-    ]);
-
-    return redirect()->route('admin.master-data', ['scope' => $request->scope])
-        ->with('success', 'Kategori master data berhasil ditambahkan!');
-}
-
-    public function destroyMasterDataType(\App\Models\MasterDataType $type)
-    {
-        $scope = $type->scope;
-        $type->delete();
-        return redirect()->route('admin.master-data', ['scope' => $scope])->with('success', 'Kategori master data berhasil dihapus!');
-    }
-
-    public function updateMasterDataType(\Illuminate\Http\Request $request, \App\Models\MasterDataType $type)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:255',
-        ]);
-
-        $type->update([
-            'name' => $request->name,
-            'description' => $request->description,
-        ]);
-
-        return redirect()->route('admin.master-data', ['scope' => $type->scope])
-            ->with('success', 'Kategori "' . $type->name . '" berhasil diupdate!');
-    }
-
-    public function showMasterDataType(\App\Models\MasterDataType $type)
-    {
-        $type->load('values');
-        return view('admin.master-data.show', compact('type'));
-    }
-
-    public function storeMasterDataValue(\Illuminate\Http\Request $request, \App\Models\MasterDataType $type)
-    {
-        $request->validate([
-            'value' => 'required|string|max:255',
-            'description' => 'nullable|string|max:255',
-        ]);
-
-        $type->values()->create([
-            'value' => $request->value,
-            'description' => $request->description,
-        ]);
-
-        return back()->with('success', 'Nilai berhasil ditambahkan!');
-    }
-
-    public function destroyMasterDataValue(\App\Models\MasterDataValue $value)
-    {
-        $value->delete();
-        return back()->with('success', 'Nilai berhasil dihapus!');
-    }
-}
 

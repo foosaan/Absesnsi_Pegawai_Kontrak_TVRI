@@ -3,6 +3,8 @@
 namespace App\Imports;
 
 use App\Models\User;
+use App\Models\EmployeeProfile;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Illuminate\Support\Collection;
@@ -51,8 +53,9 @@ class UserImport implements ToCollection, WithCalculatedFormulas
 
         \Log::info('Excel Import Header Map: ' . json_encode($headerMap));
 
-        // Step 2: Process data rows
+        // Step 2: Parse all data rows
         $dataRows = $rows->slice($headerRowIndex + 1);
+        $parsedRows = [];
 
         foreach ($dataRows as $index => $row) {
             $rowNumber = $index + 1;
@@ -65,7 +68,7 @@ class UserImport implements ToCollection, WithCalculatedFormulas
             }
 
             // Extract fields
-            $nip = $this->getMapped($mapped, ['nip/nipeg', 'nipnipeg', 'nip', 'nipeg']);
+            $nip = $this->cleanNumericString($this->getMapped($mapped, ['nip/nipeg', 'nipnipeg', 'nip', 'nipeg']));
             $name = $this->getMapped($mapped, ['nama', 'name']);
             $email = $this->getMapped($mapped, ['email', 'e-mail']);
             $gender = $this->getMapped($mapped, ['l/p', 'lp', 'jenis kelamin', 'jenis_kelamin', 'gender']);
@@ -76,77 +79,163 @@ class UserImport implements ToCollection, WithCalculatedFormulas
             $statusPegawai = $this->getMapped($mapped, ['status', 'status pegawai', 'status_pegawai']);
             $statusOperasional = $this->getMapped($mapped, ['status_2', 'status operasional', 'status_operasional']);
 
-            $tipeAbsensi = $this->getMapped($mapped, ['tipe absensi', 'tipe_absensi', 'attendance_type']);
-            $nik = $this->getMapped($mapped, ['nik', 'no ktp', 'ktp', 'nomor induk kependudukan']);
+            $tipePresensi = $this->getMapped($mapped, ['tipe presensi', 'tipe_presensi', 'tipe absensi', 'tipe_absensi', 'attendance_type']);
+            $nik = $this->cleanNumericString($this->getMapped($mapped, ['nik', 'no ktp', 'ktp', 'nomor induk kependudukan']));
             $alamat = $this->getMapped($mapped, ['alamat', 'address']);
+            $noTelepon = $this->cleanNumericString($this->getMapped($mapped, ['no_telepon', 'no telepon', 'no hp', 'no_hp', 'telepon', 'phone', 'hp']));
 
             // Skip empty rows
             if (empty($nip) && empty($name)) {
                 continue;
             }
 
-            // Validasi: NIP wajib
+            $parsedRows[] = [
+                'rowNumber' => $rowNumber,
+                'nip' => $nip,
+                'nik' => $nik,
+                'name' => $name,
+                'email' => $email,
+                'gender' => $gender,
+                'jabatan' => $jabatan,
+                'bagian' => $bagian,
+                'statusPegawai' => $statusPegawai,
+                'statusOperasional' => $statusOperasional,
+                'tipePresensi' => $tipePresensi,
+                'alamat' => $alamat,
+                'noTelepon' => $noTelepon,
+            ];
+        }
+
+        // ============================================================
+        // TAHAP 1: Validasi Massal (Pre-validation Pass)
+        // Periksa seluruh baris sebelum menyimpan apa pun.
+        // ============================================================
+        $seenNips = [];
+        $seenEmails = [];
+        $seenNiks = [];
+
+        foreach ($parsedRows as $parsed) {
+            $rowNumber = $parsed['rowNumber'];
+            $nip = $parsed['nip'];
+            $nik = $parsed['nik'];
+            $name = $parsed['name'];
+            $email = $parsed['email'];
+            $noTelepon = $parsed['noTelepon'];
+
+            // Validasi: NIP wajib dan harus 18 karakter
             if (empty($nip)) {
-                $this->errors[] = "Baris {$rowNumber}: NIP kosong, dilewati.";
-                continue;
+                $this->errors[] = "Baris {$rowNumber}: NIP kosong.";
+            } elseif (strlen($nip) !== 18) {
+                $this->errors[] = "Baris {$rowNumber}: NIP '{$nip}' harus 18 karakter (saat ini " . strlen($nip) . " karakter).";
+            } elseif (User::where('nip', $nip)->exists()) {
+                $this->errors[] = "Baris {$rowNumber}: NIP '{$nip}' ({$name}) sudah terdaftar di database.";
+            } elseif (isset($seenNips[$nip])) {
+                $this->errors[] = "Baris {$rowNumber}: NIP '{$nip}' duplikat dengan Baris {$seenNips[$nip]} di dalam file.";
             }
+            $seenNips[$nip] = $rowNumber;
 
-            // Cek duplikat NIP
-            if (User::where('nip', $nip)->exists()) {
-                $this->skipped[] = "Baris {$rowNumber}: NIP '{$nip}' ({$name}) sudah terdaftar, dilewati.";
-                continue;
-            }
-
-            // Validasi: NIK wajib
+            // Validasi: NIK wajib dan harus 16 digit
             if (empty($nik)) {
-                $this->errors[] = "Baris {$rowNumber}: NIK kosong, dilewati.";
-                continue;
+                $this->errors[] = "Baris {$rowNumber}: NIK kosong.";
+            } elseif (strlen($nik) !== 16) {
+                $this->errors[] = "Baris {$rowNumber}: NIK '{$nik}' harus 16 digit (saat ini " . strlen($nik) . " digit).";
+            } elseif (EmployeeProfile::where('nik', $nik)->exists()) {
+                $this->errors[] = "Baris {$rowNumber}: NIK '{$nik}' sudah terdaftar di database.";
+            } elseif (isset($seenNiks[$nik])) {
+                $this->errors[] = "Baris {$rowNumber}: NIK '{$nik}' duplikat dengan Baris {$seenNiks[$nik]} di dalam file.";
             }
+            $seenNiks[$nik] = $rowNumber;
 
             // Validasi: Nama wajib
             if (empty($name)) {
-                $this->errors[] = "Baris {$rowNumber}: Nama kosong, dilewati.";
-                continue;
+                $this->errors[] = "Baris {$rowNumber}: Nama kosong.";
             }
 
-            // Validasi: Email wajib
+            // Validasi: Email wajib dan unik
             if (empty($email)) {
-                $this->errors[] = "Baris {$rowNumber}: Email kosong, dilewati.";
-                continue;
+                $this->errors[] = "Baris {$rowNumber}: Email kosong.";
+            } elseif (User::where('email', $email)->exists()) {
+                $this->errors[] = "Baris {$rowNumber}: Email '{$email}' sudah terdaftar di database.";
+            } elseif (isset($seenEmails[strtolower($email)])) {
+                $this->errors[] = "Baris {$rowNumber}: Email '{$email}' duplikat dengan Baris {$seenEmails[strtolower($email)]} di dalam file.";
             }
+            $seenEmails[strtolower($email)] = $rowNumber;
 
-            // Cek duplikat email
-            if (User::where('email', $email)->exists()) {
-                $this->errors[] = "Baris {$rowNumber}: Email '{$email}' sudah terdaftar, dilewati.";
-                continue;
+            // Validasi: Nomor Telepon wajib, hanya angka, 10-13 digit
+            if (empty($noTelepon)) {
+                $this->errors[] = "Baris {$rowNumber}: No. Telepon/HP kosong.";
+            } else {
+                // Bersihkan karakter non-angka (untuk mengatasi format seperti "0812-3456-7890")
+                $cleanPhone = preg_replace('/[^0-9]/', '', $noTelepon);
+                if (strlen($cleanPhone) < 10 || strlen($cleanPhone) > 13) {
+                    $this->errors[] = "Baris {$rowNumber}: No. Telepon/HP '{$noTelepon}' tidak valid (harus 10-13 digit angka, saat ini " . strlen($cleanPhone) . " digit).";
+                }
             }
+        }
 
-            try {
-                User::create([
-                    'name' => $this->normalizeCase($name),
-                    'email' => strtolower($email),
-                    'password' => bcrypt('password123'),
+        // ============================================================
+        // TAHAP 2: Jika ada error, BATALKAN seluruh proses
+        // ============================================================
+        if (count($this->errors) > 0) {
+            // Tidak menyimpan apa pun — kembalikan errors ke controller
+            return;
+        }
+
+        // ============================================================
+        // TAHAP 3: Simpan semua data dalam satu transaksi
+        // ============================================================
+        DB::transaction(function () use ($parsedRows) {
+            foreach ($parsedRows as $parsed) {
+                $noTelepon = preg_replace('/[^0-9]/', '', $parsed['noTelepon']);
+
+                $user = User::create([
+                    'name' => $this->normalizeCase($parsed['name']),
+                    'nip' => $parsed['nip'],
+                    'email' => strtolower($parsed['email']),
+                    'password' => bcrypt('Presensi@123'),
                     'role' => 'user',
-                    'nip' => $nip,
-                    'attendance_type' => $this->parseAttendanceType($tipeAbsensi),
-                    'jabatan' => $this->normalizeCase($jabatan) ?: null,
-                    'bagian' => $this->normalizeCase($bagian) ?: null,
-                    'status_pegawai' => $this->normalizeCase($statusPegawai) ?: null,
-                    'status_operasional' => $this->normalizeCase($statusOperasional) ?: null,
-                    'jenis_kelamin' => $this->parseGender($gender),
-                    'nik' => $nik,
-                    'alamat' => $alamat ?: null,
+                ]);
+
+                $user->profile()->create([
+                    'nik' => $parsed['nik'],
+                    'attendance_type' => $this->parseAttendanceType($parsed['tipePresensi']),
+                    'jabatan_id' => $this->resolveMasterDataId('jabatan', $parsed['jabatan']),
+                    'bagian_id' => $this->resolveMasterDataId('bagian', $parsed['bagian']),
+                    'status_pegawai_id' => $this->resolveMasterDataId('status-pegawai', $parsed['statusPegawai']),
+                    'status_operasional_id' => $this->resolveMasterDataId('status_operasional', $parsed['statusOperasional']),
+                    'jenis_kelamin' => $this->parseGender($parsed['gender']),
+                    'alamat' => $parsed['alamat'] ?: null,
+                    'no_telepon' => $noTelepon,
                 ]);
 
                 $this->results[] = [
-                    'name' => $this->normalizeCase($name),
-                    'nip' => $nip,
+                    'name' => $this->normalizeCase($parsed['name']),
+                    'nip' => $parsed['nip'],
                     'status' => 'success',
                 ];
-            } catch (\Exception $e) {
-                $this->errors[] = "Baris {$rowNumber}: Gagal import {$name} - " . $e->getMessage();
+            }
+        });
+    }
+
+    /**
+     * Format dan bersihkan angka besar (seperti NIP/NIK) agar tidak terbaca sebagai notasi ilmiah (E+).
+     */
+    protected function cleanNumericString(string $value): string
+    {
+        $value = trim($value);
+        if (empty($value)) {
+            return '';
+        }
+
+        // Jika dibaca sebagai notasi ilmiah (contoh: 1.9900101202001E+17)
+        if (stripos($value, 'e') !== false) {
+            $floatVal = (float) $value;
+            if (is_finite($floatVal)) {
+                return number_format($floatVal, 0, '.', '');
             }
         }
+
+        return $value;
     }
 
     /**
@@ -194,7 +283,25 @@ class UserImport implements ToCollection, WithCalculatedFormulas
         if (in_array($value, ['shift', 's'])) {
             return 'shift';
         }
+        if (in_array($value, ['umum', 'u', 'general'])) {
+            return 'umum';
+        }
         return 'normal';
+    }
+
+    protected function resolveMasterDataId(string $typeSlug, string $value): ?int
+    {
+        if (empty($value)) return null;
+
+        $normalizedValue = $this->normalizeCase($value);
+
+        $type = str_replace('-', '_', $typeSlug);
+
+        $masterDataValue = \App\Models\MasterData::where('type', $type)
+            ->where('value', $normalizedValue)
+            ->first();
+
+        return $masterDataValue?->id;
     }
 
     public function getResults()

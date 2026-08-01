@@ -1,4 +1,4 @@
-<x-app-layout title="Monitor Absensi">
+<x-app-layout title="Monitor Presensi">
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3">
@@ -6,7 +6,7 @@
                     <i class="fas fa-desktop text-emerald-600 dark:text-emerald-400"></i>
                 </div>
                 <div>
-                    <h1 class="page-title dark:page-title-dark">Monitor Absensi</h1>
+                    <h1 class="page-title dark:page-title-dark">Monitor Presensi</h1>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                         Pantau kehadiran karyawan secara real-time (read-only)
                     </p>
@@ -153,8 +153,8 @@
                             </div>
                         </td>
                         <td>
-                            <span class="text-sm text-gray-600 dark:text-gray-300">{{ \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('d M Y') }}</span>
-                            <p class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('l') }}</p>
+                            <span class="text-sm text-gray-600 dark:text-gray-300">{{ $attendance->work_date ? $attendance->work_date->translatedFormat('d M Y') : \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('d M Y') }}</span>
+                            <p class="text-[10px] text-gray-400">{{ $attendance->work_date ? $attendance->work_date->translatedFormat('l') : \Carbon\Carbon::parse($attendance->check_in_time)->translatedFormat('l') }}</p>
                         </td>
                         <td>{{ $attendance->shift->name ?? 'Reguler' }}</td>
                         <td>
@@ -220,7 +220,7 @@
                     <tr>
                         <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
                             <i class="fas fa-calendar-times text-4xl mb-3 opacity-50"></i>
-                            <p>Tidak ada data absensi yang ditemukan</p>
+                            <p>Tidak ada data presensi yang ditemukan</p>
                         </td>
                     </tr>
                     @endforelse
@@ -245,7 +245,7 @@
                         </button>
                     </div>
                     <div class="p-4">
-                        <img :src="photoUrl" alt="Foto Absensi" class="w-full rounded-lg shadow-sm">
+                        <img :src="photoUrl" alt="Foto Presensi" class="w-full rounded-lg shadow-sm">
                     </div>
                 </div>
             </div>

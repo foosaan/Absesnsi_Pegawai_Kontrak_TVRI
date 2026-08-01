@@ -22,42 +22,39 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'attendance_type',
+        'nip',            // NIP tetap di users — dipakai semua role
         'profile_photo',
-        // Profile fields
-        'nip',
-        'nik',
-        'npwp',
-        'status_pegawai',
-        'nomor_sk',
-        'tanggal_sk',
-        'status_pajak',
-        'nomor_rekening',
-        'nama_bank',
-        'gaji_pokok',
-        'alamat',
-        'no_telepon',
-        'tanggal_lahir',
-        'jenis_kelamin',
-        'jabatan',
-        'bagian',
-        'status_operasional',
         'signature',
+        'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
-     * Get profile photo URL
+     * Dapatkan URL foto profil
      */
     public function getProfilePhotoUrl(): string
     {
         if ($this->profile_photo) {
             return asset('storage/' . $this->profile_photo);
         }
-        // Default avatar with initials
+        // Avatar default dengan inisial
         $initials = collect(explode(' ', $this->name))->map(fn($n) => strtoupper($n[0] ?? ''))->take(2)->join('');
         return "https://ui-avatars.com/api/?name={$initials}&background=4F46E5&color=fff&size=128";
     }
-    
+
+    // ===================================================================
+    // Relasi Utama
+    // ===================================================================
+
+    /**
+     * Relasi One-to-One ke EmployeeProfile (hanya untuk role 'user')
+     */
+    public function profile()
+    {
+        return $this->hasOne(EmployeeProfile::class);
+    }
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
@@ -68,8 +65,116 @@ class User extends Authenticatable
         return $this->hasMany(Salary::class);
     }
 
+    // ===================================================================
+    // Accessor Delegasi — Backward Compatibility
+    // Memungkinkan pemanggilan $user->nik, $user->jabatan, dll.
+    // meskipun datanya sudah berpindah ke tabel employee_profiles.
+    // NIP TIDAK perlu accessor karena tetap di tabel users.
+    // ===================================================================
+
+    public function getNikAttribute()
+    {
+        return $this->profile?->nik;
+    }
+
+
+    public function getAlamatAttribute()
+    {
+        return $this->profile?->alamat;
+    }
+
+    public function getNoTeleponAttribute()
+    {
+        return $this->profile?->no_telepon;
+    }
+
+    public function getTanggalLahirAttribute()
+    {
+        return $this->profile?->tanggal_lahir;
+    }
+
+    public function getJenisKelaminAttribute()
+    {
+        return $this->profile?->jenis_kelamin;
+    }
+
+    public function getAttendanceTypeAttribute()
+    {
+        return $this->profile?->attendance_type;
+    }
+
+    public function getJabatanIdAttribute()
+    {
+        return $this->profile?->jabatan_id;
+    }
+
+    public function getBagianIdAttribute()
+    {
+        return $this->profile?->bagian_id;
+    }
+
+    public function getStatusPegawaiIdAttribute()
+    {
+        return $this->profile?->status_pegawai_id;
+    }
+
+    public function getStatusOperasionalIdAttribute()
+    {
+        return $this->profile?->status_operasional_id;
+    }
+
     /**
-     * Check if user uses shift-based attendance
+     * Accessors untuk string value master data (Backward Compatibility)
+     */
+    public function getJabatanAttribute()
+    {
+        return $this->profile?->jabatan;
+    }
+
+    public function getBagianAttribute()
+    {
+        return $this->profile?->bagian;
+    }
+
+    public function getStatusPegawaiAttribute()
+    {
+        return $this->profile?->status_pegawai;
+    }
+
+    public function getStatusOperasionalAttribute()
+    {
+        return $this->profile?->status_operasional;
+    }
+
+    /**
+     * Relasi ke MasterData via profile (delegasi)
+     */
+    public function jabatanValue()
+    {
+        return $this->profile ? $this->profile->jabatanValue() : MasterData::query()->whereRaw('1=0');
+    }
+
+    public function bagianValue()
+    {
+        return $this->profile ? $this->profile->bagianValue() : MasterData::query()->whereRaw('1=0');
+    }
+
+    public function statusPegawaiValue()
+    {
+        return $this->profile ? $this->profile->statusPegawaiValue() : MasterData::query()->whereRaw('1=0');
+    }
+
+    public function statusOperasionalValue()
+    {
+        return $this->profile ? $this->profile->statusOperasionalValue() : MasterData::query()->whereRaw('1=0');
+    }
+
+    // ===================================================================
+    // Helper Methods: Tipe Absensi
+    // ===================================================================
+
+    /**
+     * Periksa apakah pengguna menggunakan absensi berbasis shift
      */
     public function isShiftAttendance(): bool
     {
@@ -77,7 +182,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user uses normal attendance
+     * Periksa apakah pengguna menggunakan absensi normal
      */
     public function isNormalAttendance(): bool
     {
@@ -85,7 +190,20 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is Admin
+     * Periksa apakah pengguna menggunakan absensi umum (bebas 24 jam)
+     * Absen bebas 24 jam, tidak ada batasan waktu masuk, tidak ada status terlambat
+     */
+    public function isUmumAttendance(): bool
+    {
+        return $this->attendance_type === 'umum';
+    }
+
+    // ===================================================================
+    // Helper Methods: Role & Jabatan
+    // ===================================================================
+
+    /**
+     * Periksa apakah pengguna adalah Admin
      */
     public function isAdmin(): bool
     {
@@ -93,7 +211,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is Satpam
+     * Periksa apakah pengguna adalah Satpam
      */
     public function isSatpam(): bool
     {
@@ -101,7 +219,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is OB
+     * Periksa apakah pengguna adalah OB (Office Boy)
      */
     public function isOB(): bool
     {
@@ -116,6 +234,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -128,10 +248,23 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'tanggal_sk' => 'date',
-            'tanggal_lahir' => 'date',
-            'gaji_pokok' => 'integer',
+            'two_factor_enabled' => 'boolean',
         ];
     }
-}
 
+    /**
+     * Periksa apakah pengguna telah mengaktifkan 2FA
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_enabled && !empty($this->two_factor_secret);
+    }
+
+    /**
+     * Periksa apakah role pengguna memerlukan 2FA
+     */
+    public function requiresTwoFactor(): bool
+    {
+        return $this->role === 'admin';
+    }
+}

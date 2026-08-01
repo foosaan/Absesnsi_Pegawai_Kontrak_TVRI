@@ -26,7 +26,11 @@
                     <div class="form-group">
                         <label class="form-label">NIP <span class="text-red-500">*</span></label>
                         <input type="text" name="nip" value="{{ old('nip') }}" 
-                               class="form-control @error('nip') border-red-500 @enderror" required>
+                               class="form-control @error('nip') border-red-500 @enderror" 
+                               minlength="18" maxlength="18" pattern="[0-9]{18}" 
+                               title="NIP harus 18 digit angka" 
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                        <p class="text-xs text-gray-500 mt-1">Harus tepat 18 karakter angka</p>
                         @error('nip')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                 </div>
@@ -35,14 +39,33 @@
                     <div class="form-group">
                         <label class="form-label">NIK <span class="text-red-500">*</span></label>
                         <input type="text" name="nik" value="{{ old('nik') }}" 
-                               class="form-control @error('nik') border-red-500 @enderror" placeholder="Nomor Induk Kependudukan" required>
+                               class="form-control @error('nik') border-red-500 @enderror" 
+                               minlength="16" maxlength="16" pattern="[0-9]{16}" 
+                               title="NIK harus 16 digit angka"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               placeholder="Nomor Induk Kependudukan" required>
+                        <p class="text-xs text-gray-500 mt-1">Harus tepat 16 digit angka</p>
                         @error('nik')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Alamat</label>
-                        <textarea name="alamat" rows="2" 
-                               class="form-control" placeholder="Alamat lengkap">{{ old('alamat') }}</textarea>
+                        <label class="form-label">Nomor Telepon <span class="text-red-500">*</span></label>
+                        <input type="text" name="no_telepon" value="{{ old('no_telepon') }}" 
+                               class="form-control @error('no_telepon') border-red-500 @enderror" 
+                               pattern="[0-9]*" 
+                               minlength="10"
+                               maxlength="13"
+                               title="Nomor telepon/HP wajib diisi antara 10 hingga 13 digit angka"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               placeholder="Contoh: 081234567890" required>
+                        <p class="text-xs text-gray-500 mt-1">Harus berupa 10 - 13 digit angka</p>
+                        @error('no_telepon')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Alamat</label>
+                    <textarea name="alamat" rows="2" 
+                               class="form-control" placeholder="Alamat lengkap">{{ old('alamat') }}</textarea>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -55,7 +78,9 @@
                     <div class="form-group">
                         <label class="form-label">Password <span class="text-red-500">*</span></label>
                         <input type="password" name="password" 
-                               class="form-control @error('password') border-red-500 @enderror" required>
+                               class="form-control @error('password') border-red-500 @enderror" 
+                               minlength="8" maxlength="20" required>
+                        <p class="text-xs text-gray-500 mt-1">8-20 karakter, huruf besar, huruf kecil, angka & simbol</p>
                         @error('password')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                 </div>
@@ -70,10 +95,11 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Tipe Absensi <span class="text-red-500">*</span></label>
+                        <label class="form-label">Tipe Presensi <span class="text-red-500">*</span></label>
                         <select name="attendance_type" class="form-control" required>
                             <option value="normal" {{ old('attendance_type') == 'normal' ? 'selected' : '' }}>Normal</option>
                             <option value="shift" {{ old('attendance_type') == 'shift' ? 'selected' : '' }}>Shift</option>
+                            <option value="umum" {{ old('attendance_type') == 'umum' ? 'selected' : '' }}>Umum (24 Jam)</option>
                         </select>
                     </div>
                 </div>
@@ -89,7 +115,7 @@
                         <select name="master_data[{{ $slug }}]" class="form-control">
                             <option value="">-- Pilih {{ $type->name }} --</option>
                             @foreach($type->values as $value)
-                                <option value="{{ $value->value }}" {{ old("master_data.{$slug}") == $value->value ? 'selected' : '' }}>
+                                <option value="{{ $value->id }}" {{ old("master_data.{$slug}") == $value->id ? 'selected' : '' }}>
                                     {{ $value->value }}
                                 </option>
                             @endforeach

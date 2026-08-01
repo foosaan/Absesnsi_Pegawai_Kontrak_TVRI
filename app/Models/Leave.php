@@ -4,11 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class Leave extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Leave $leave) {
+            if ($leave->attachment) {
+                Storage::disk('public')->delete($leave->attachment);
+            }
+        });
+    }
 
     protected $fillable = [
         'user_id',
@@ -28,7 +38,7 @@ class Leave extends Model
     ];
 
     /**
-     * Get the user this leave belongs to
+     * Dapatkan pengguna pemilik cuti ini
      */
     public function user()
     {
@@ -36,7 +46,7 @@ class Leave extends Model
     }
 
     /**
-     * Get the user who approved/rejected this leave
+     * Dapatkan pengguna yang menyetujui/menolak cuti ini
      */
     public function approver()
     {
@@ -44,21 +54,21 @@ class Leave extends Model
     }
 
     /**
-     * Get type label
+     * Dapatkan label tipe cuti
      */
     public function getTypeLabelAttribute(): string
     {
         return match($this->type) {
             'cuti_tahunan' => 'Cuti Tahunan',
             'sakit' => 'Sakit',
-            'alasan_penting' => 'Alasan Penting',
+            'izin' => 'Izin',
             'lainnya' => 'Lainnya',
             default => $this->type,
         };
     }
 
     /**
-     * Get status label
+     * Dapatkan label status
      */
     public function getStatusLabelAttribute(): string
     {
@@ -71,7 +81,7 @@ class Leave extends Model
     }
 
     /**
-     * Get total days of leave
+     * Dapatkan total hari cuti
      */
     public function getTotalDaysAttribute(): int
     {
@@ -79,7 +89,7 @@ class Leave extends Model
     }
 
     /**
-     * Scope pending leaves
+     * Scope untuk cuti yang berstatus pending
      */
     public function scopePending($query)
     {
@@ -87,7 +97,7 @@ class Leave extends Model
     }
 
     /**
-     * Scope approved leaves
+     * Scope untuk cuti yang disetujui
      */
     public function scopeApproved($query)
     {

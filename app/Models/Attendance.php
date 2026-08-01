@@ -3,11 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\Shift;
 
 class Attendance extends Model
 {
+    protected static function booted(): void
+    {
+        static::deleting(function (Attendance $attendance) {
+            if ($attendance->photo_path) {
+                Storage::disk('public')->delete($attendance->photo_path);
+            }
+            if ($attendance->check_out_photo_path) {
+                Storage::disk('public')->delete($attendance->check_out_photo_path);
+            }
+        });
+    }
     protected $fillable = [
         'user_id',
         'shift_id',
@@ -28,6 +40,9 @@ class Attendance extends Model
         'check_out_location_accuracy',
         'is_mock_location',
         'status',
+        'manual_reason',
+        'created_by',
+        'work_date',
     ];
 
     protected $casts = [
@@ -36,6 +51,7 @@ class Attendance extends Model
         'min_check_out_time' => 'datetime',
         'max_check_out_time' => 'datetime',
         'is_mock_location' => 'boolean',
+        'work_date' => 'date',
     ];
 
     public function user()
@@ -58,8 +74,13 @@ class Attendance extends Model
         return $this->belongsTo(\App\Models\BusinessTrip::class);
     }
 
+    public function createdByUser()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     /**
-     * Check if minimum work duration has been met
+     * Periksa apakah durasi kerja minimum telah terpenuhi
      */
     public function canCheckOut(): bool
     {
@@ -70,7 +91,7 @@ class Attendance extends Model
     }
 
     /**
-     * Get remaining time before allowed to check out
+     * Dapatkan sisa waktu sebelum diizinkan untuk check-out
      */
     public function getRemainingMinutes(): int
     {

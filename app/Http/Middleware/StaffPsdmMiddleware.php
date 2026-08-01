@@ -18,7 +18,12 @@ class StaffPsdmMiddleware
         }
 
         if (auth()->user()->role !== 'staff_psdm') {
-            abort(403, 'Akses ditolak. Halaman ini hanya untuk Staff PSDM.');
+            // Redirect to their appropriate dashboard instead of hard 403
+            return match(auth()->user()->role) {
+                'admin' => redirect()->route('admin.dashboard'),
+                'staff_keuangan' => redirect()->route('staff.keuangan.dashboard'),
+                default => redirect()->route('dashboard'),
+            };
         }
 
         return $next($request);

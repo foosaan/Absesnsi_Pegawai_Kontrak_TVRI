@@ -38,7 +38,26 @@
                                placeholder="Nama atau Email...">
                     </div>
                 </div>
-
+                <div class="form-group mb-0" style="min-width: 160px;">
+                    <label class="form-label">Posisi</label>
+                    <select name="jabatan" class="form-control" onchange="this.form.submit()">
+                        <option value="">Semua Posisi</option>
+                        @foreach($jabatanList as $jabatan)
+                            <option value="{{ $jabatan }}" {{ request('jabatan') == $jabatan ? 'selected' : '' }}>
+                                {{ $jabatan }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group mb-0" style="min-width: 150px;">
+                    <label class="form-label">Tipe Presensi</label>
+                    <select name="attendance_type" class="form-control" onchange="this.form.submit()">
+                        <option value="">Semua</option>
+                        <option value="normal" {{ request('attendance_type') == 'normal' ? 'selected' : '' }}>Normal</option>
+                        <option value="shift" {{ request('attendance_type') == 'shift' ? 'selected' : '' }}>Shift</option>
+                        <option value="umum" {{ request('attendance_type') == 'umum' ? 'selected' : '' }}>Umum (24 Jam)</option>
+                    </select>
+                </div>
             </form>
         </div>
     </div>
@@ -87,7 +106,7 @@
                             Batal
                         </button>
                         <form method="POST" action="{{ route('staff.psdm.users.bulk-delete') }}"
-                              data-confirm="Yakin ingin menghapus semua pegawai yang dipilih? Semua data terkait (absensi, gaji, cuti, dll) juga akan dihapus!"
+                              data-confirm="Yakin ingin menghapus semua pegawai yang dipilih? Semua data terkait (presensi, gaji, cuti, dll) juga akan dihapus!"
                               data-confirm-title="Konfirmasi Hapus Massal">
                             @csrf
                             <template x-for="id in selectedIds" :key="id">

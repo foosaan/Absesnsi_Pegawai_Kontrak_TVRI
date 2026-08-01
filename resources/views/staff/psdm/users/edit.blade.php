@@ -20,14 +20,17 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="form-group">
                         <label class="form-label">Nama Lengkap <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" value="{{ old('name', $user->name) }}" 
-                               class="form-control @error('name') border-red-500 @enderror" required>
+                        <input type="text" name="name" value="{{ old('name', $user->name) }}"
+                            class="form-control @error('name') border-red-500 @enderror" required>
                         @error('name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div class="form-group">
                         <label class="form-label">NIP <span class="text-red-500">*</span></label>
-                        <input type="text" name="nip" value="{{ old('nip', $user->nip) }}" 
-                               class="form-control @error('nip') border-red-500 @enderror" required>
+                        <input type="text" name="nip" value="{{ old('nip', $user->nip) }}"
+                            class="form-control @error('nip') border-red-500 @enderror" minlength="18" maxlength="18"
+                            pattern="[0-9]{18}" title="NIP harus 18 digit angka"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                        <p class="text-xs text-gray-500 mt-1">Harus tepat 18 karakter angka</p>
                         @error('nip')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                 </div>
@@ -35,27 +38,47 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="form-group">
                         <label class="form-label">NIK <span class="text-red-500">*</span></label>
-                        <input type="text" name="nik" value="{{ old('nik', $user->nik) }}" 
-                               class="form-control @error('nik') border-red-500 @enderror" placeholder="Nomor Induk Kependudukan" required>
+                        <input type="text" name="nik" value="{{ old('nik', $user->nik) }}"
+                            class="form-control @error('nik') border-red-500 @enderror" minlength="16" maxlength="16"
+                            pattern="[0-9]{16}" title="NIK harus 16 digit angka" placeholder="Nomor Induk Kependudukan"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                        <p class="text-xs text-gray-500 mt-1">Harus tepat 16 digit angka</p>
                         @error('nik')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Alamat</label>
-                        <textarea name="alamat" rows="2" 
-                               class="form-control" placeholder="Alamat lengkap">{{ old('alamat', $user->alamat) }}</textarea>
+                        <label class="form-label">Nomor Telepon <span class="text-red-500">*</span></label>
+                        <input type="text" name="no_telepon" value="{{ old('no_telepon', $user->no_telepon) }}"
+                            class="form-control @error('no_telepon') border-red-500 @enderror"
+                            pattern="[0-9]*" 
+                            minlength="10"
+                            maxlength="13"
+                            title="Nomor telepon/HP wajib diisi antara 10 hingga 13 digit angka"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                            placeholder="Contoh: 081234567890" required>
+                        <p class="text-xs text-gray-500 mt-1">Harus berupa 10 - 13 digit angka</p>
+                        @error('no_telepon')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Alamat</label>
+                    <textarea name="alamat" rows="2" class="form-control"
+                        placeholder="Alamat lengkap">{{ old('alamat', $user->alamat) }}</textarea>
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="form-group">
                         <label class="form-label">Email <span class="text-red-500">*</span></label>
-                        <input type="email" name="email" value="{{ old('email', $user->email) }}" 
-                               class="form-control @error('email') border-red-500 @enderror" required>
+                        <input type="email" name="email" value="{{ old('email', $user->email) }}"
+                            class="form-control @error('email') border-red-500 @enderror" required>
                         @error('email')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div class="form-group">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" 
-                               class="form-control" placeholder="Kosongkan jika tidak diubah">
+                        <input type="password" name="password" class="form-control" minlength="8" maxlength="20"
+                            placeholder="Kosongkan jika tidak diubah">
+                        <p class="text-xs text-gray-500 mt-1">8-20 karakter, huruf besar, huruf kecil, angka & simbol
+                        </p>
+                        @error('password')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                 </div>
 
@@ -64,45 +87,52 @@
                         <label class="form-label">Jenis Kelamin</label>
                         <select name="jenis_kelamin" class="form-control">
                             <option value="">-- Pilih --</option>
-                            <option value="L" {{ old('jenis_kelamin', $user->jenis_kelamin) == 'L' ? 'selected' : '' }}>Laki-laki</option>
-                            <option value="P" {{ old('jenis_kelamin', $user->jenis_kelamin) == 'P' ? 'selected' : '' }}>Perempuan</option>
+                            <option value="L" {{ old('jenis_kelamin', $user->jenis_kelamin) == 'L' ? 'selected' : '' }}>
+                                Laki-laki</option>
+                            <option value="P" {{ old('jenis_kelamin', $user->jenis_kelamin) == 'P' ? 'selected' : '' }}>
+                                Perempuan</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Tipe Absensi <span class="text-red-500">*</span></label>
+                        <label class="form-label">Tipe Presensi <span class="text-red-500">*</span></label>
                         <select name="attendance_type" class="form-control" required>
                             <option value="normal" {{ old('attendance_type', $user->attendance_type) == 'normal' ? 'selected' : '' }}>Normal</option>
                             <option value="shift" {{ old('attendance_type', $user->attendance_type) == 'shift' ? 'selected' : '' }}>Shift</option>
+                            <option value="umum" {{ old('attendance_type', $user->attendance_type) == 'umum' ? 'selected' : '' }}>Umum (24 Jam)</option>
                         </select>
                     </div>
                 </div>
 
                 {{-- Master Data Fields --}}
                 @if(isset($masterDataTypes) && $masterDataTypes->count() > 0)
-                <hr class="dark:border-slate-700">
-                <h3 class="font-semibold text-gray-900 dark:text-white">Data Kepegawaian</h3>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    @foreach($masterDataTypes as $slug => $type)
-                    @php
-                        $currentValue = null;
-                        if($slug == 'jabatan') $currentValue = $user->jabatan;
-                        elseif($slug == 'bagian') $currentValue = $user->bagian;
-                        elseif($slug == 'status-pegawai') $currentValue = $user->status_pegawai;
-                        elseif($slug == 'status_oprasional') $currentValue = $user->status_operasional;
-                    @endphp
-                    <div class="form-group">
-                        <label class="form-label">{{ $type->name }}</label>
-                        <select name="master_data[{{ $slug }}]" class="form-control">
-                            <option value="">-- Pilih {{ $type->name }} --</option>
-                            @foreach($type->values as $value)
-                                <option value="{{ $value->value }}" {{ strtolower(old("master_data.{$slug}", $currentValue ?? '')) == strtolower($value->value) ? 'selected' : '' }}>
-                                    {{ $value->value }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <hr class="dark:border-slate-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Data Kepegawaian</h3>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        @foreach($masterDataTypes as $slug => $type)
+                            @php
+                                $currentValue = null;
+                                if ($slug == 'jabatan')
+                                    $currentValue = $user->jabatan_id;
+                                elseif ($slug == 'bagian')
+                                    $currentValue = $user->bagian_id;
+                                elseif ($slug == 'status-pegawai')
+                                    $currentValue = $user->status_pegawai_id;
+                                elseif ($slug == 'status_operasional')
+                                    $currentValue = $user->status_operasional_id;
+                            @endphp
+                            <div class="form-group">
+                                <label class="form-label">{{ $type->name }}</label>
+                                <select name="master_data[{{ $slug }}]" class="form-control">
+                                    <option value="">-- Pilih {{ $type->name }} --</option>
+                                    @foreach($type->values as $value)
+                                        <option value="{{ $value->id }}" {{ old("master_data.{$slug}", $currentValue ?? '') == $value->id ? 'selected' : '' }}>
+                                            {{ $value->value }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endforeach
                     </div>
-                    @endforeach
-                </div>
                 @endif
             </div>
             <div class="card-body border-t dark:border-slate-700 flex justify-end gap-3">

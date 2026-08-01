@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'staff.psdm' => \App\Http\Middleware\StaffPsdmMiddleware::class,
             'staff.keuangan' => \App\Http\Middleware\StaffKeuanganMiddleware::class,
+            'user.only' => \App\Http\Middleware\UserMiddleware::class,
+            '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
+        ]);
+
+        // Append 2FA check to all web requests
+        $middleware->web(append: [
+            \App\Http\Middleware\TwoFactorMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

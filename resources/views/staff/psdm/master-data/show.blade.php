@@ -14,7 +14,7 @@
     {{-- Add Value Form --}}
     <div class="card mb-6">
         <div class="card-body">
-            <form method="POST" action="{{ route('staff.psdm.master-data.values.store', $type) }}" class="flex flex-wrap items-end gap-4">
+            <form method="POST" action="{{ route('staff.psdm.master-data.values.store', $type->id) }}" class="flex flex-wrap items-end gap-4">
                 @csrf
                 <div class="form-group mb-0 flex-1 min-w-48">
                     <label class="form-label">Nilai Baru</label>
@@ -60,7 +60,7 @@
                             @endif
                         </td>
                         <td class="text-center">
-                            <form action="{{ route('staff.psdm.master-data.values.destroy', $value) }}" method="POST"
+                            <form action="{{ route('staff.psdm.master-data.values.destroy', $value->id) }}" method="POST"
                                   data-confirm="Hapus nilai {{ $value->value }}?" data-confirm-title="Konfirmasi Hapus">
                                 @csrf
                                 @method('DELETE')

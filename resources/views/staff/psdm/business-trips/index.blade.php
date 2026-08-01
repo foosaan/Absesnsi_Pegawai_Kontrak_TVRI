@@ -48,6 +48,7 @@
                         <th>Tanggal</th>
                         <th>Durasi</th>
                         <th>Keperluan</th>
+                        <th>Berkas</th>
                         <th>Status</th>
                         <th>Aksi</th>
                     </tr>
@@ -84,6 +85,15 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate" title="{{ $trip->purpose }}">
                                 {{ $trip->purpose }}
                             </p>
+                        </td>
+                        <td>
+                            @if($trip->attachment)
+                                <a href="{{ asset('storage/' . $trip->attachment) }}" target="_blank" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 transition-colors">
+                                    <i class="fas fa-file-download"></i> Lihat
+                                </a>
+                            @else
+                                <span class="text-xs text-gray-400">—</span>
+                            @endif
                         </td>
                         <td>
                             @if($trip->status === 'pending')
@@ -147,13 +157,21 @@
                                     </div>
                                 </div>
                             @else
-                                <span class="text-xs text-gray-400">—</span>
+                                <form method="POST" action="{{ route('staff.psdm.business-trips.delete', $trip) }}"
+                                      data-confirm="Hapus data dinas luar {{ $trip->user->name }} ke {{ $trip->destination }}? Data yang sudah dihapus tidak bisa dikembalikan."
+                                      data-confirm-title="Hapus Data Dinas Luar">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <td colspan="8" class="text-center py-8 text-gray-500 dark:text-gray-400">
                             <i class="fas fa-briefcase text-4xl mb-3 opacity-50"></i>
                             <p>Tidak ada pengajuan dinas luar</p>
                         </td>

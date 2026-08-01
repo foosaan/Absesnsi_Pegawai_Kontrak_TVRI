@@ -35,6 +35,22 @@ class UserFactory extends Factory
     }
 
     /**
+     * Configure the model factory.
+     * Otomatis buat EmployeeProfile setelah user dibuat (hanya untuk role user).
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (\App\Models\User $user) {
+            if ($user->role === 'user' && !$user->profile()->exists()) {
+                $user->profile()->create([
+                    'nik' => fake()->numerify('################'),
+                    'attendance_type' => 'normal',
+                ]);
+            }
+        });
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

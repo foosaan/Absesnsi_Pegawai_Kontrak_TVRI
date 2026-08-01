@@ -15,7 +15,7 @@
             </h3>
         </div>
         <div class="card-body">
-            <div class="flex flex-col md:flex-row gap-8">
+            <div class="flex flex-col md:flex-row gap-4 md:gap-8">
                 {{-- Photo --}}
                 <div class="flex flex-col items-center md:items-start shrink-0">
                     @if(auth()->user()->profile_photo)
@@ -35,30 +35,32 @@
                 </div>
 
                 {{-- Biodata Grid --}}
-                <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-4 py-3">
-                        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">NIP</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->nip ?? '-' }}</p>
+                <div class="flex-1 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
+                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 col-span-2 sm:col-span-1">
+                        <p class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">NIP</p>
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->nip ?? '-' }}</p>
                     </div>
-                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-4 py-3">
-                        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">NIK</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->nik ?? '-' }}</p>
+                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 col-span-2 sm:col-span-1">
+                        <p class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">NIK</p>
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->nik ?? '-' }}</p>
                     </div>
-                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-4 py-3">
-                        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Jabatan</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->jabatan ?? '-' }}</p>
+                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 col-span-1 sm:col-span-1">
+                        <p class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Jabatan</p>
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->jabatan ?? '-' }}</p>
                     </div>
-                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-4 py-3">
-                        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Bagian</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->bagian ?? '-' }}</p>
+                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 col-span-1 sm:col-span-1">
+                        <p class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Bagian</p>
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->bagian ?? '-' }}</p>
                     </div>
-                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-4 py-3">
-                        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Jenis Kelamin</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->jenis_kelamin ?? '-' }}</p>
+                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 col-span-2 sm:col-span-1">
+                        <p class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Jenis Kelamin</p>
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">
+                            {{ auth()->user()->jenis_kelamin === 'L' ? 'Laki-laki' : (auth()->user()->jenis_kelamin === 'P' ? 'Perempuan' : '-') }}
+                        </p>
                     </div>
-                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-4 py-3 sm:col-span-2 lg:col-span-3">
-                        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Alamat</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->alamat ?? '-' }}</p>
+                    <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 col-span-2 sm:col-span-2 lg:col-span-3">
+                        <p class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Alamat</p>
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">{{ auth()->user()->alamat ?? '-' }}</p>
                     </div>
                 </div>
             </div>
@@ -76,7 +78,7 @@
                             <i class="fas fa-check-circle text-xl text-emerald-600 dark:text-emerald-400"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Status Absensi</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Status Presensi</p>
                             @if($todayAttendance->check_out_time)
                                 <h3 class="text-base font-bold text-emerald-600 dark:text-emerald-400">Sudah Pulang</h3>
                                 <p class="text-[11px] text-gray-400 mt-0.5">
@@ -93,7 +95,7 @@
                             <i class="fas fa-clock text-xl text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Status Absensi</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Status Presensi</p>
                             <h3 class="text-base font-bold text-gray-900 dark:text-white">Belum Check-in</h3>
                         </div>
                     @endif
@@ -120,7 +122,7 @@
         <div class="card">
             <div class="card-body flex items-center justify-between">
                 <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white">Absensi Cepat</h3>
+                    <h3 class="font-bold text-gray-900 dark:text-white">Presensi Cepat</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Catat kehadiran anda</p>
                 </div>
                 <a href="{{ route('attendance.index') }}" class="btn btn-primary flex items-center gap-2">
@@ -131,7 +133,29 @@
     </div>
 
     {{-- Shift Info Card --}}
-    @if(auth()->user()->isShiftAttendance() && $allShifts)
+    @if(auth()->user()->isUmumAttendance())
+    <div class="card mb-6 border-l-4 border-teal-500">
+        <div class="card-body">
+            <h4 class="font-bold text-teal-700 dark:text-teal-400 flex items-center gap-2 mb-3">
+                <i class="fas fa-clock"></i> Jadwal Kerja Umum (24 Jam)
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div class="bg-teal-50 dark:bg-teal-900/20 rounded-lg px-4 py-3">
+                    <p class="text-[10px] font-semibold text-teal-500 uppercase tracking-widest">Jam Masuk</p>
+                    <p class="text-lg font-bold font-mono text-teal-700 dark:text-teal-300 mt-0.5">Kapan Saja</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg px-4 py-3">
+                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Durasi Kerja</p>
+                    <p class="text-lg font-bold font-mono text-gray-700 dark:text-gray-300 mt-0.5">Min. 8 <span class="text-xs font-normal">jam</span></p>
+                </div>
+                <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg px-4 py-3">
+                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Status</p>
+                    <p class="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">Tidak Pernah Terlambat</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @elseif(auth()->user()->isShiftAttendance() && $allShifts)
     <div class="card mb-6 border-l-4 border-purple-500">
         <div class="card-body">
             <div class="flex items-center justify-between mb-3">
@@ -229,14 +253,14 @@
         </div>
     </div>
 
-    {{-- Riwayat Absensi & Pengumuman --}}
+    {{-- Riwayat Presensi & Pengumuman --}}
     <div class="grid gap-6 lg:grid-cols-5 mb-6" x-data="{ showModal: false, photoUrl: '', photoTitle: '' }">
-        {{-- Riwayat Absensi - wider column --}}
+        {{-- Riwayat Presensi - wider column --}}
         <div class="card h-fit lg:col-span-3">
             <div class="card-header flex items-center justify-between">
                 <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="fas fa-history text-blue-500 text-sm"></i>
-                    Riwayat Absensi Terakhir
+                    Riwayat Presensi Terakhir
                 </h3>
                 <a href="{{ route('user.rekap') }}" class="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1">
                     Lihat Semua <i class="fas fa-arrow-right text-[10px]"></i>
@@ -264,7 +288,7 @@
                                     </div>
                                     <div class="min-w-0">
                                         <p class="text-sm font-semibold text-gray-900 dark:text-white">
-                                            {{ $attendance->check_in_time->translatedFormat('l, d M Y') }}
+                                            {{ ($attendance->work_date ?? $attendance->check_in_time)->translatedFormat('l, d M Y') }}
                                         </p>
                                         <div class="flex items-center gap-3 mt-1 flex-wrap">
                                             @if($attendance->status == 'cuti')
@@ -330,7 +354,7 @@
                             <div class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-700 mb-3">
                                 <i class="fas fa-calendar-times text-xl text-gray-400 dark:text-gray-500"></i>
                             </div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Belum ada riwayat absensi</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Belum ada riwayat presensi</p>
                         </div>
                     @endforelse
                 </div>
@@ -388,14 +412,14 @@
                  x-transition:leave-end="opacity-0 scale-90">
                 
                 <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-700">
-                    <h3 class="font-bold text-gray-900 dark:text-white" x-text="photoTitle">Foto Absensi</h3>
+                    <h3 class="font-bold text-gray-900 dark:text-white" x-text="photoTitle">Foto Presensi</h3>
                     <button @click="showModal = false" class="h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center justify-center transition-colors">
                         <i class="fas fa-times text-gray-400"></i>
                     </button>
                 </div>
                 
                 <div class="p-4 flex justify-center bg-gray-50 dark:bg-slate-900/50">
-                    <img :src="photoUrl" class="max-h-[70vh] rounded-lg shadow-sm" alt="Foto Absensi">
+                    <img :src="photoUrl" class="max-h-[70vh] rounded-lg shadow-sm" alt="Foto Presensi">
                 </div>
                 
                 <div class="p-4 border-t border-gray-100 dark:border-slate-700 flex justify-end">

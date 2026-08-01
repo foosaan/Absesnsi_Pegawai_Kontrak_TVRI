@@ -17,25 +17,25 @@ class SalaryService
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
         
-        // Get attendance records for the month
+        // Dapatkan data presensi (kehadiran) untuk bulan tersebut
         $attendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('check_in_time', [$startDate, $endDate])
+            ->whereYear('work_date', $year)
+            ->whereMonth('work_date', $month)
             ->get();
         
-        // Count statistics
+        // Hitung statistik
         $totalWorkDays = $this->getWorkingDaysInMonth($year, $month);
         $daysPresent = $attendances->count();
         $daysLate = $attendances->where('status', 'late')->count();
         $daysAbsent = $totalWorkDays - $daysPresent;
         
-        // Calculate deductions
-        // Late deduction: 2% per late day
-        // Absent deduction: 4% per absent day
-        $lateDeduction = ($daysLate * 0.02) * $baseSalary;
-        $absentDeduction = ($daysAbsent * 0.04) * $baseSalary;
-        $totalDeductions = $lateDeduction + $absentDeduction;
+        // Hitung potongan
+        // Late & absent deductions are removed as per requirements (tidak ada denda otomatis).
+        $lateDeduction = 0;
+        $absentDeduction = 0;
+        $totalDeductions = 0;
         
-        $finalSalary = $baseSalary - $totalDeductions;
+        $finalSalary = $baseSalary;
         
         return [
             'user_id' => $user->id,
@@ -46,15 +46,15 @@ class SalaryService
             'days_present' => $daysPresent,
             'total_late_days' => $daysLate,
             'total_absent_days' => $daysAbsent,
-            'late_deduction' => $lateDeduction,
-            'absent_deduction' => $absentDeduction,
-            'deductions' => $totalDeductions,
-            'final_salary' => max(0, $finalSalary),
+            'late_deduction' => 0,
+            'absent_deduction' => 0,
+            'deductions' => 0,
+            'final_salary' => $finalSalary,
         ];
     }
     
     /**
-     * Get number of working days in a month (exclude weekends)
+     * Dapatkan jumlah hari kerja dalam sebulan (tidak termasuk akhir pekan)
      */
     public function getWorkingDaysInMonth(int $year, int $month): int
     {
@@ -76,26 +76,34 @@ class SalaryService
     }
     
     /**
-     * Create or update salary record
+     * Buat atau perbarui data gaji
      */
     public function saveSalary(array $data, int $createdBy): Salary
     {
+        // Cek apakah record sudah ada
+        $existing = Salary::where('user_id', $data['user_id'])
+            ->where('month', $data['month'])
+            ->where('year', $data['year'])
+            ->first();
+
+        $updateData = [
+            'base_salary' => $data['base_salary'],
+            'final_salary' => $data['final_salary'],
+            'created_by' => $createdBy,
+        ];
+
+        // Hanya set status 'draft' untuk record baru, pertahankan status existing
+        if (!$existing) {
+            $updateData['status'] = 'draft';
+        }
+
         return Salary::updateOrCreate(
             [
                 'user_id' => $data['user_id'],
                 'month' => $data['month'],
                 'year' => $data['year'],
             ],
-            [
-                'base_salary' => $data['base_salary'],
-                'deductions' => $data['deductions'],
-                'total_work_days' => $data['total_work_days'],
-                'total_late_days' => $data['total_late_days'],
-                'total_absent_days' => $data['total_absent_days'],
-                'final_salary' => $data['final_salary'],
-                'created_by' => $createdBy,
-                'status' => 'draft',
-            ]
+            $updateData
         );
     }
 }

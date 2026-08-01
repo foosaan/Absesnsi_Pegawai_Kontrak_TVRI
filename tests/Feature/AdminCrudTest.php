@@ -38,17 +38,17 @@ class AdminCrudTest extends TestCase
     {
         $response = $this->actingAs($this->admin)->post(route('admin.staffs.store'), [
             'name' => 'Staff Baru',
-            'nip' => '123456789012',
+            'nip' => '123456789012345678',
             'email' => 'staffbaru@test.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'NewPassword123!',
+            'password_confirmation' => 'NewPassword123!',
             'role' => 'staff_psdm',
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('users', [
             'name' => 'Staff Baru',
-            'nip' => '123456789012',
+            'nip' => '123456789012345678',
             'email' => 'staffbaru@test.com',
             'role' => 'staff_psdm',
         ]);
@@ -69,7 +69,7 @@ class AdminCrudTest extends TestCase
 
         $response = $this->actingAs($this->admin)->put(route('admin.staffs.update', $staff), [
             'name' => 'Staff Updated',
-            'nip' => '999888777666',
+            'nip' => '999888777666555444',
             'email' => $staff->email,
             'role' => 'staff_psdm',
         ]);
@@ -78,7 +78,7 @@ class AdminCrudTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $staff->id,
             'name' => 'Staff Updated',
-            'nip' => '999888777666',
+            'nip' => '999888777666555444',
         ]);
     }
 
@@ -133,16 +133,16 @@ class AdminCrudTest extends TestCase
     {
         $response = $this->actingAs($this->admin)->post(route('admin.admins.store'), [
             'name' => 'Admin Baru',
-            'nip' => '555666777888',
+            'nip' => '555666777888999111',
             'email' => 'adminbaru@test.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'NewPassword123!',
+            'password_confirmation' => 'NewPassword123!',
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('users', [
             'name' => 'Admin Baru',
-            'nip' => '555666777888',
+            'nip' => '555666777888999111',
             'email' => 'adminbaru@test.com',
             'role' => 'admin',
         ]);
@@ -154,7 +154,7 @@ class AdminCrudTest extends TestCase
 
         $response = $this->actingAs($this->admin)->put(route('admin.admins.update', $otherAdmin), [
             'name' => 'Admin Updated',
-            'nip' => '111222333444',
+            'nip' => '111222333444555666',
             'email' => $otherAdmin->email,
         ]);
 
@@ -162,7 +162,7 @@ class AdminCrudTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $otherAdmin->id,
             'name' => 'Admin Updated',
-            'nip' => '111222333444',
+            'nip' => '111222333444555666',
         ]);
     }
 

@@ -18,7 +18,12 @@ class StaffKeuanganMiddleware
         }
 
         if (auth()->user()->role !== 'staff_keuangan') {
-            abort(403, 'Akses ditolak. Halaman ini hanya untuk Staff Keuangan.');
+            // Redirect to their appropriate dashboard instead of hard 403
+            return match(auth()->user()->role) {
+                'admin' => redirect()->route('admin.dashboard'),
+                'staff_psdm' => redirect()->route('staff.psdm.dashboard'),
+                default => redirect()->route('dashboard'),
+            };
         }
 
         return $next($request);

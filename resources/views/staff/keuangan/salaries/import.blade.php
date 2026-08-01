@@ -101,22 +101,25 @@
 
                     <div class="form-group mb-6">
                         <label class="form-label">File Excel</label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-slate-600 border-dashed rounded-md">
+                        <div id="drop-zone" class="mt-1 flex flex-col justify-center items-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-slate-600 border-dashed rounded-md transition-all duration-200">
                             <div class="space-y-1 text-center">
-                                <i class="fas fa-file-excel text-4xl text-gray-400"></i>
+                                <i id="upload-icon" class="fas fa-file-excel text-4xl text-gray-400 transition-all duration-200 animate-pulse"></i>
                                 <div class="flex text-sm text-gray-600 dark:text-gray-400 justify-center">
                                     <label for="file-upload" class="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                                        <span>Upload file</span>
+                                        <span id="upload-link-text">Upload file</span>
                                         <input id="file-upload" name="file" type="file" class="sr-only" accept=".xlsx,.xls,.csv">
                                     </label>
-                                    <p class="pl-1">atau drag and drop</p>
+                                    <span id="upload-text-addon" class="pl-1">atau drag and drop</span>
                                 </div>
-                                <p class="text-xs text-gray-500">
+                                <p id="upload-info" class="text-xs text-gray-500">
                                     XLSX atau XLS hingga 10MB
                                 </p>
                             </div>
+                            <!-- Tombol Hapus/Batal File -->
+                            <button type="button" id="btn-clear-file" class="mt-3 hidden btn btn-xs btn-danger">
+                                <i class="fas fa-times mr-1"></i> Batal / Hapus File
+                            </button>
                         </div>
-                        <p id="file-name" class="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center"></p>
                     </div>
 
                     <div class="flex items-center gap-2 mb-4">
@@ -182,26 +185,104 @@
     @push('scripts')
     <script>
         const fileInput = document.getElementById('file-upload');
-        const fileNamePara = document.getElementById('file-name');
+        const dropZone = document.getElementById('drop-zone');
+        const uploadIcon = document.getElementById('upload-icon');
+        const uploadLinkText = document.getElementById('upload-link-text');
+        const uploadTextAddon = document.getElementById('upload-text-addon');
+        const uploadInfo = document.getElementById('upload-info');
+        const btnClearFile = document.getElementById('btn-clear-file');
+        
         const importForm = document.querySelector('form[action*="import"]');
         const btnImport = document.getElementById('btn-import');
         const btnIcon = document.getElementById('btn-icon');
         const btnText = document.getElementById('btn-text');
 
-        // Tampilkan nama file yang dipilih
-        fileInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                fileNamePara.textContent = 'File terpilih: ' + this.files[0].name;
+        function updateFileFeedback() {
+            if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                
+                // Ubah warna border & background kotak menjadi hijau sukses
+                dropZone.classList.remove('border-gray-300', 'dark:border-slate-600', 'bg-blue-50/20', 'border-blue-500');
+                dropZone.classList.add('border-emerald-500', 'bg-emerald-50/10');
+                
+                // Ubah warna & skala icon
+                uploadIcon.classList.remove('text-gray-400', 'animate-pulse');
+                uploadIcon.classList.add('text-emerald-500', 'scale-110');
+                
+                // Tampilkan nama file
+                uploadLinkText.innerHTML = `<strong>File Terpilih:</strong> ${file.name}`;
+                uploadTextAddon.classList.add('hidden');
+                uploadInfo.textContent = `Ukuran: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                
+                // Tampilkan tombol hapus
+                btnClearFile.classList.remove('hidden');
             } else {
-                fileNamePara.textContent = '';
+                resetFileFeedback();
             }
+        }
+
+        function resetFileFeedback() {
+            fileInput.value = '';
+            
+            // Kembalikan ke warna semula
+            dropZone.classList.remove('border-emerald-500', 'bg-emerald-50/10', 'border-blue-500', 'bg-blue-50/20');
+            dropZone.classList.add('border-gray-300', 'dark:border-slate-600');
+            
+            // Reset Icon
+            uploadIcon.classList.remove('text-emerald-500', 'scale-110');
+            uploadIcon.classList.add('text-gray-400', 'animate-pulse');
+            
+            // Reset Teks
+            uploadLinkText.innerHTML = 'Upload file';
+            uploadTextAddon.classList.remove('hidden');
+            uploadInfo.textContent = 'XLSX atau XLS hingga 10MB';
+            
+            // Sembunyikan tombol hapus
+            btnClearFile.classList.add('hidden');
+        }
+
+        // Listener input biasa
+        fileInput.addEventListener('change', updateFileFeedback);
+
+        // Listener tombol hapus
+        btnClearFile.addEventListener('click', function(e) {
+            e.stopPropagation();
+            resetFileFeedback();
         });
+
+        // Drag & Drop Handling
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-gray-300', 'dark:border-slate-600');
+                dropZone.classList.add('border-blue-500', 'bg-blue-50/10');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50/10');
+                if (!fileInput.files || !fileInput.files[0]) {
+                    dropZone.classList.add('border-gray-300', 'dark:border-slate-600');
+                }
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
+                fileInput.files = files;
+                updateFileFeedback();
+            }
+        }, false);
 
         // Loading state saat submit
         importForm.addEventListener('submit', function() {
             btnImport.disabled = true;
             btnImport.classList.add('opacity-75', 'cursor-not-allowed');
-            btnIcon.className = 'fas fa-spinner fa-spin';
+            btnIcon.className = 'fas fa-spinner fa-spin mr-1';
             btnText.textContent = 'Memproses...';
         });
     </script>

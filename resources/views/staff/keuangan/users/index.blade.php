@@ -121,7 +121,9 @@
                                     {{ strtoupper(substr($user->name, 0, 1)) }}
                                 </div>
                                 <div>
-                                    <p class="font-medium text-gray-900 dark:text-white text-sm">{{ $user->name }}</p>
+                                    <a href="{{ route('staff.keuangan.users.show', $user->id) }}" class="font-medium text-gray-900 dark:text-white text-sm hover:text-emerald-600 dark:hover:text-emerald-400">
+                                        {{ $user->name }}
+                                    </a>
                                     <p class="text-xs text-gray-400">{{ $user->nip ?? '-' }}</p>
                                 </div>
                             </div>

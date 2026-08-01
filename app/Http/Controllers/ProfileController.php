@@ -13,7 +13,7 @@ use Illuminate\View\View;
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Tampilkan formulir profil pengguna.
      */
     public function edit(Request $request): View
     {
@@ -23,7 +23,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update the user's profile information.
+     * Perbarui informasi profil pengguna.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -39,7 +39,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update profile photo
+     * Perbarui foto profil
      */
     public function updatePhoto(Request $request): RedirectResponse
     {
@@ -49,12 +49,12 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        // Delete old photo if exists
+        // Hapus foto lama jika ada
         if ($user->profile_photo) {
             Storage::disk('public')->delete($user->profile_photo);
         }
 
-        // Store new photo
+        // Simpan foto baru
         $path = $request->file('photo')->store('profile-photos', 'public');
         
         $user->update(['profile_photo' => $path]);
@@ -63,7 +63,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete profile photo
+     * Hapus foto profil
      */
     public function deletePhoto(Request $request): RedirectResponse
     {
@@ -78,7 +78,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's account.
+     * Hapus akun pengguna.
      */
     public function destroy(Request $request): RedirectResponse
     {
@@ -90,7 +90,7 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        // Delete profile photo if exists
+        // Hapus foto profil jika ada
         if ($user->profile_photo) {
             Storage::disk('public')->delete($user->profile_photo);
         }

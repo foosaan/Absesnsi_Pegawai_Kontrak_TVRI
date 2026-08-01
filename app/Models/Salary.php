@@ -16,7 +16,6 @@ class Salary extends Model
         'base_salary',
         'potongan_kppn',
         'total_potongan_intern',
-        'deductions',
         'final_salary',
         'created_by',
         'status',
@@ -29,13 +28,12 @@ class Salary extends Model
         'base_salary' => 'integer',
         'potongan_kppn' => 'integer',
         'total_potongan_intern' => 'integer',
-        'deductions' => 'integer',
         'final_salary' => 'integer',
         'signed_at' => 'datetime',
     ];
 
     /**
-     * Get the deductions for the salary.
+     * Dapatkan potongan-potongan untuk gaji ini.
      */
     public function salaryDeductions()
     {
@@ -43,7 +41,7 @@ class Salary extends Model
     }
 
     /**
-     * Get the user this salary belongs to
+     * Dapatkan pengguna pemilik gaji ini.
      */
     public function user()
     {
@@ -51,7 +49,7 @@ class Salary extends Model
     }
 
     /**
-     * Get the user who created this salary record
+     * Dapatkan pengguna yang membuat data gaji ini.
      */
     public function creator()
     {
@@ -59,7 +57,7 @@ class Salary extends Model
     }
 
     /**
-     * Get the user who signed this salary
+     * Dapatkan pengguna yang menandatangani gaji ini.
      */
     public function signer()
     {
@@ -67,7 +65,7 @@ class Salary extends Model
     }
 
     /**
-     * Check if salary is signed
+     * Periksa apakah gaji sudah ditandatangani.
      */
     public function isSigned(): bool
     {
@@ -75,7 +73,7 @@ class Salary extends Model
     }
 
     /**
-     * Check if salary is draft (not signed)
+     * Periksa apakah gaji berupa draf (belum ditandatangani).
      */
     public function isDraft(): bool
     {
@@ -83,7 +81,7 @@ class Salary extends Model
     }
 
     /**
-     * Get formatted month name
+     * Dapatkan nama bulan yang diformat.
      */
     public function getMonthNameAttribute(): string
     {
@@ -96,7 +94,7 @@ class Salary extends Model
     }
 
     /**
-     * Get period string (e.g., "Januari 2026")
+     * Dapatkan string periode (misal, "Januari 2026").
      */
     public function getPeriodAttribute(): string
     {
@@ -104,7 +102,7 @@ class Salary extends Model
     }
 
     /**
-     * Get status label
+     * Dapatkan label status.
      */
     public function getStatusLabelAttribute(): string
     {

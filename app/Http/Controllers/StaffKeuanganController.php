@@ -74,12 +74,12 @@ class StaffKeuanganController extends Controller
             ->where('month', $month)
             ->where('year', $year);
         
-        // Filter by status
+        // Filter berdasarkan status
         if ($status) {
             $query->where('status', $status);
         }
         
-        // Search by name or NIK
+        // Cari berdasarkan nama atau NIK
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('user', function ($q) use ($search) {
@@ -118,18 +118,28 @@ class StaffKeuanganController extends Controller
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|min:2020',
             'base_salary' => 'required|numeric|min:0',
+            'allowances' => 'nullable|numeric|min:0',
+            'deductions' => 'nullable|numeric|min:0',
         ]);
         
         $user = User::findOrFail($request->user_id);
         
-        $calculation = $this->salaryService->calculateSalary(
-            $user,
-            $request->month,
-            $request->year,
-            $request->base_salary
-        );
+        $base = $request->base_salary;
+        $allowances = $request->allowances ?? 0;
+        $deductions = $request->deductions ?? 0;
+        $total = $base + $allowances - $deductions;
         
-        return view('staff.keuangan.salaries.result', compact('calculation', 'user'));
+        $result = [
+            'user_id' => $user->id,
+            'month' => $request->month,
+            'year' => $request->year,
+            'base' => $base,
+            'allowances' => $allowances,
+            'deductions' => $deductions,
+            'total' => max(0, $total),
+        ];
+        
+        return view('staff.keuangan.salaries.result', compact('result', 'user'));
     }
 
     /**
@@ -142,15 +152,29 @@ class StaffKeuanganController extends Controller
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|min:2020',
             'base_salary' => 'required|numeric|min:0',
-            'deductions' => 'required|numeric|min:0',
-            'total_work_days' => 'required|integer',
-            'total_late_days' => 'required|integer',
-            'total_absent_days' => 'required|integer',
+            'deductions' => 'nullable|numeric|min:0',
             'final_salary' => 'required|numeric|min:0',
         ]);
         
-        $this->salaryService->saveSalary($request->all(), auth()->id());
+        $salary = $this->salaryService->saveSalary($request->all(), auth()->id());
         
+        // Catat log ke ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'create',
+            'model_type' => get_class($salary),
+            'model_id' => $salary->id,
+            'description' => "Menghitung & menyimpan data gaji pegawai '{$salary->user->name}' untuk periode {$salary->month}/{$salary->year}",
+            'old_values' => null,
+            'new_values' => [
+                'user_name' => $salary->user->name,
+                'period' => "{$salary->month}/{$salary->year}",
+                'base_salary' => $salary->base_salary,
+                'final_salary' => $salary->final_salary
+            ],
+            'ip_address' => request()->ip(),
+        ]);
+
         return redirect()->route('staff.keuangan.salaries')
             ->with('success', 'Data gaji berhasil disimpan!');
     }
@@ -183,8 +207,36 @@ class StaffKeuanganController extends Controller
      */
     public function deleteSalary(Salary $salary)
     {
+        $userName = $salary->user->name ?? 'Unknown';
+        $period = "{$salary->month}/{$salary->year}";
+
+        $oldValues = [
+            'user_name' => $userName,
+            'period' => $period,
+            'base_salary' => $salary->base_salary,
+            'final_salary' => $salary->final_salary
+        ];
+
+        // Hapus notifikasi terkait gaji ini
+        \App\Models\Notification::where('type', 'salary')
+            ->where('user_id', $salary->user_id)
+            ->where('message', 'like', '%' . $salary->period . '%')
+            ->delete();
+
         $salary->salaryDeductions()->delete();
         $salary->delete();
+
+        // Catat log ke ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'delete',
+            'model_type' => get_class($salary),
+            'model_id' => $salary->id,
+            'description' => "Menghapus data gaji pegawai '{$userName}' periode {$period}",
+            'old_values' => $oldValues,
+            'new_values' => null,
+            'ip_address' => request()->ip(),
+        ]);
         
         return redirect()->route('staff.keuangan.salaries')
             ->with('success', 'Data gaji berhasil dihapus!');
@@ -200,15 +252,41 @@ class StaffKeuanganController extends Controller
             'salary_ids.*' => 'exists:salaries,id',
         ]);
 
+        $deletedSalariesInfo = [];
         $count = 0;
         foreach ($request->salary_ids as $id) {
             $salary = Salary::find($id);
             if ($salary) {
+                $deletedSalariesInfo[] = [
+                    'id' => $salary->id,
+                    'user_name' => $salary->user->name ?? 'Unknown',
+                    'period' => "{$salary->month}/{$salary->year}",
+                    'final_salary' => $salary->final_salary
+                ];
+
+                // Hapus notifikasi terkait
+                \App\Models\Notification::where('type', 'salary')
+                    ->where('user_id', $salary->user_id)
+                    ->where('message', 'like', '%' . $salary->period . '%')
+                    ->delete();
+
                 $salary->salaryDeductions()->delete();
                 $salary->delete();
                 $count++;
             }
         }
+
+        // Catat log ke ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'delete',
+            'model_type' => Salary::class,
+            'model_id' => null,
+            'description' => "Menghapus {$count} data gaji pegawai secara massal",
+            'old_values' => $deletedSalariesInfo,
+            'new_values' => null,
+            'ip_address' => request()->ip(),
+        ]);
 
         return redirect()->route('staff.keuangan.salaries')
             ->with('success', "{$count} data gaji berhasil dihapus!");
@@ -224,17 +302,20 @@ class StaffKeuanganController extends Controller
         $bagian = $request->get('bagian');
         $jabatan = $request->get('jabatan');
         
-        // Build query with filters
         $query = User::where('role', 'user');
         
         if ($bagian) {
-            $query->where('bagian', $bagian);
+            $query->whereHas('bagianValue', function($q) use ($bagian) {
+                $q->where('value', $bagian);
+            });
         }
         if ($jabatan) {
-            $query->where('jabatan', $jabatan);
+            $query->whereHas('jabatanValue', function($q) use ($jabatan) {
+                $q->where('value', $jabatan);
+            });
         }
         
-        // Get all users with their salary status for this period
+        // Dapatkan semua pengguna beserta status gaji mereka untuk periode ini
         $users = $query->orderBy('name')
             ->get()
             ->map(function ($user) use ($month, $year) {
@@ -295,7 +376,7 @@ class StaffKeuanganController extends Controller
         $errorCount = 0;
 
         foreach ($selectedUsers as $userId) {
-            // Check if salary already exists
+            // Periksa apakah data gaji sudah ada
             $exists = Salary::where('user_id', $userId)
                 ->where('month', $month)
                 ->where('year', $year)
@@ -306,7 +387,7 @@ class StaffKeuanganController extends Controller
                 continue;
             }
 
-            // Parse values
+            // Uraikan nilai-nilai (parse values)
             $baseStr = $request->input("base_salary.{$userId}", '0');
             $kppnStr = $request->input("potongan_kppn.{$userId}", '0');
             $internStr = $request->input("potongan_intern.{$userId}", '0');
@@ -326,9 +407,28 @@ class StaffKeuanganController extends Controller
                 'total_potongan_intern' => $potonganIntern,
                 'final_salary' => $finalSalary,
                 'status' => 'draft',
+                'created_by' => auth()->id(),
             ]);
 
             $successCount++;
+        }
+
+        if ($successCount > 0) {
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'create',
+                'model_type' => Salary::class,
+                'model_id' => null,
+                'description' => "Menginput secara massal {$successCount} data gaji pegawai untuk periode {$month}/{$year}",
+                'old_values' => null,
+                'new_values' => [
+                    'month' => $month,
+                    'year' => $year,
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                ],
+                'ip_address' => request()->ip(),
+            ]);
         }
 
         $message = "{$successCount} data gaji berhasil disimpan.";
@@ -349,7 +449,7 @@ class StaffKeuanganController extends Controller
         $year = $request->get('year', Carbon::now()->year);
         $deductionTypes = DeductionType::where('is_active', true)->get();
         
-        // Check if salary already exists
+        // Periksa apakah data gaji sudah ada
         $existingSalary = Salary::where('user_id', $user->id)
             ->where('month', $month)
             ->where('year', $year)
@@ -377,7 +477,7 @@ class StaffKeuanganController extends Controller
             'year' => 'required|integer|min:2020',
             'base_salary' => 'required|numeric|min:0',
             'potongan_kppn' => 'nullable|numeric|min:0',
-            // Dynamic deductions validation handled manually or array validation
+            // Validasi potongan dinamis ditangani secara manual atau validasi array
             'deduction_ids' => 'nullable|array',
             'deduction_ids.*' => 'exists:deduction_types,id',
             'deduction_amounts' => 'nullable|array',
@@ -388,7 +488,7 @@ class StaffKeuanganController extends Controller
             'status' => 'nullable|in:draft,approved,paid',
         ]);
 
-        // Check if salary already exists for this period
+        // Periksa apakah gaji sudah ada untuk periode ini
         $existing = Salary::where('user_id', $request->user_id)
             ->where('month', $request->month)
             ->where('year', $request->year)
@@ -399,36 +499,54 @@ class StaffKeuanganController extends Controller
                 ->with('error', 'Data gaji untuk karyawan ini pada periode tersebut sudah ada!');
         }
 
-        DB::beginTransaction();
-        try {
-            // 1. Calculate Total Intern Deductions
-            $totalPotonganIntern = 0;
-            $itemsToSave = [];
+        // 1. Calculate Total Intern Deductions
+        $totalPotonganIntern = 0;
+        $itemsToSave = [];
 
-            if ($request->has('deduction_ids') && $request->has('deduction_amounts')) {
-                foreach ($request->deduction_ids as $index => $typeId) {
-                    $amount = $request->deduction_amounts[$index] ?? 0;
-                    if ($amount > 0) {
-                        $totalPotonganIntern += $amount;
-                        $itemsToSave[] = [
-                            'deduction_type_id' => $typeId,
-                            'amount' => $amount,
-                        ];
-                    }
+        if ($request->has('deduction_ids') && $request->has('deduction_amounts')) {
+            foreach ($request->deduction_ids as $index => $typeId) {
+                $amount = $request->deduction_amounts[$index] ?? 0;
+                if ($amount > 0) {
+                    $totalPotonganIntern += $amount;
+                    $itemsToSave[] = [
+                        'deduction_type_id' => $typeId,
+                        'amount' => $amount,
+                    ];
                 }
             }
-            
-            $totalDeductions = ($request->potongan_kppn ?? 0) + $totalPotonganIntern;
+        }
 
+        $baseSalary = $request->base_salary;
+        $potonganKppn = $request->potongan_kppn ?? 0;
+        $totalPotongan = $potonganKppn + $totalPotonganIntern;
+
+        // Validasi logika: Potongan tidak boleh lebih besar dari gaji pokok
+        if ($totalPotongan > $baseSalary) {
+            return back()->withInput()->withErrors([
+                'base_salary' => 'Total potongan (Rp ' . number_format($totalPotongan, 0, ',', '.') . ') tidak boleh lebih besar dari gaji pokok (Rp ' . number_format($baseSalary, 0, ',', '.') . ').'
+            ]);
+        }
+
+        // Validasi logika: Gaji Bersih harus sesuai perhitungan
+        $expectedFinalSalary = $baseSalary - $totalPotongan;
+        $actualFinalSalary = $request->final_salary;
+        
+        if (abs($expectedFinalSalary - $actualFinalSalary) > 1) { // toleransi pembulatan
+            return back()->withInput()->withErrors([
+                'final_salary' => 'Gaji diterima tidak sesuai dengan perhitungan. Seharusnya: Rp ' . number_format($expectedFinalSalary, 0, ',', '.') . '.'
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
             // 2. Create Salary Record
             $salary = Salary::create([
                 'user_id' => $request->user_id,
                 'month' => $request->month,
                 'year' => $request->year,
                 'base_salary' => $request->base_salary,
-                'potongan_kppn' => $request->potongan_kppn ?? 0,
+                'potongan_kppn' => $potonganKppn,
                 'total_potongan_intern' => $totalPotonganIntern,
-                'deductions' => $totalDeductions,
                 'final_salary' => $request->final_salary,
                 'created_by' => auth()->id(),
                 'status' => $request->status ?? 'draft',
@@ -445,6 +563,25 @@ class StaffKeuanganController extends Controller
             }
 
             DB::commit();
+
+            // Catat log ke ActivityLog
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'create',
+                'model_type' => get_class($salary),
+                'model_id' => $salary->id,
+                'description' => "Menginput data gaji manual pegawai '{$salary->user->name}' untuk periode {$salary->month}/{$salary->year}",
+                'old_values' => null,
+                'new_values' => [
+                    'user_name' => $salary->user->name,
+                    'period' => "{$salary->month}/{$salary->year}",
+                    'base_salary' => $salary->base_salary,
+                    'potongan_kppn' => $salary->potongan_kppn,
+                    'total_potongan_intern' => $salary->total_potongan_intern,
+                    'final_salary' => $salary->final_salary
+                ],
+                'ip_address' => request()->ip(),
+            ]);
 
             return redirect()->route('staff.keuangan.salaries')
                 ->with('success', 'Data gaji berhasil disimpan!');
@@ -522,6 +659,13 @@ class StaffKeuanganController extends Controller
             ]);
         }
 
+        $oldValues = [
+            'base_salary' => $salary->base_salary,
+            'potongan_kppn' => $salary->potongan_kppn,
+            'total_potongan_intern' => $salary->total_potongan_intern,
+            'final_salary' => $salary->final_salary,
+        ];
+
         try {
             DB::beginTransaction();
 
@@ -533,7 +677,7 @@ class StaffKeuanganController extends Controller
                 'notes' => $request->notes,
             ]);
 
-            // Delete existing deductions and recreate
+            // Hapus potongan yang ada lalu buat kembali
             $salary->salaryDeductions()->delete();
 
             if ($request->deduction_ids && $request->deduction_amounts) {
@@ -556,6 +700,23 @@ class StaffKeuanganController extends Controller
             }
 
             DB::commit();
+
+            // Catat log ke ActivityLog
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'update',
+                'model_type' => get_class($salary),
+                'model_id' => $salary->id,
+                'description' => "Memperbarui data gaji pegawai '{$salary->user->name}' periode {$salary->month}/{$salary->year}",
+                'old_values' => $oldValues,
+                'new_values' => [
+                    'base_salary' => $salary->base_salary,
+                    'potongan_kppn' => $salary->potongan_kppn,
+                    'total_potongan_intern' => $salary->total_potongan_intern,
+                    'final_salary' => $salary->final_salary,
+                ],
+                'ip_address' => request()->ip(),
+            ]);
 
             return redirect()->route('staff.keuangan.salaries.show', $salary)
                 ->with('success', 'Data gaji berhasil diupdate!');
@@ -584,7 +745,9 @@ class StaffKeuanganController extends Controller
         }
         
         if ($request->filled('bagian')) {
-            $query->where('bagian', $request->bagian);
+            $query->whereHas('bagianValue', function($q) use ($request) {
+                $q->where('value', $request->bagian);
+            });
         }
         
         $users = $query->orderBy('name')
@@ -603,10 +766,9 @@ class StaffKeuanganController extends Controller
         $completedCount = $users->where('salary_exists', true)->count();
         
         // Get unique bagians for filter
-        $bagians = User::where('role', 'user')
-            ->whereNotNull('bagian')
-            ->distinct()
-            ->pluck('bagian')
+        $bagians = \App\Models\MasterData::where('type', 'bagian')
+            ->where('is_active', true)
+            ->pluck('value')
             ->sort();
         
         return view('staff.keuangan.users.index', compact(
@@ -622,52 +784,7 @@ class StaffKeuanganController extends Controller
         return view('staff.keuangan.users.show', compact('user'));
     }
 
-    /**
-     * Update data keuangan user
-     */
-    public function updateUser(Request $request, User $user)
-    {
-        $request->validate([
-            'nip' => 'nullable|string|max:20',
-            'npwp' => 'nullable|string|max:30',
-            'status_pegawai' => 'nullable|string|max:20',
-            'nomor_sk' => 'nullable|string|max:50',
-            'tanggal_sk' => 'nullable|date',
-            'status_pajak' => 'nullable|string|max:10',
-            'nomor_rekening' => 'nullable|string|max:30',
-            'nama_bank' => 'nullable|string|max:50',
-            'gaji_pokok' => 'nullable|numeric|min:0',
-            'alamat' => 'nullable|string',
-            'no_telepon' => 'nullable|string|max:20',
-            'tanggal_lahir' => 'nullable|date',
-            'jenis_kelamin' => 'nullable|in:L,P',
-            'jabatan' => 'nullable|string|max:50',
-            'bagian' => 'nullable|string|max:50',
-            'status_operasional' => 'nullable|string|max:20',
-        ]);
 
-        $user->update([
-            'nip' => $request->nip,
-            'npwp' => $request->npwp,
-            'status_pegawai' => $request->status_pegawai,
-            'nomor_sk' => $request->nomor_sk,
-            'tanggal_sk' => $request->tanggal_sk,
-            'status_pajak' => $request->status_pajak,
-            'nomor_rekening' => $request->nomor_rekening,
-            'nama_bank' => $request->nama_bank,
-            'gaji_pokok' => $request->gaji_pokok,
-            'alamat' => $request->alamat,
-            'no_telepon' => $request->no_telepon,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'jenis_kelamin' => $request->jenis_kelamin,
-            'jabatan' => $request->jabatan,
-            'bagian' => $request->bagian,
-            'status_operasional' => $request->status_operasional,
-        ]);
-
-        return redirect()->route('staff.keuangan.users')
-            ->with('success', 'Data keuangan karyawan berhasil diupdate!');
-    }
 
     /**
      * Tampilkan form import Excel
@@ -710,6 +827,29 @@ class StaffKeuanganController extends Controller
             $successCount = count($results);
             $errorCount = count($errors);
             
+            $message = "Import selesai! {$successCount} data berhasil diimport.";
+            if ($errorCount > 0) {
+                $message .= " {$errorCount} data gagal.";
+            }
+
+            // Catat log ke ActivityLog
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'create',
+                'model_type' => Salary::class,
+                'model_id' => null,
+                'description' => "Melakukan import data gaji dari Excel untuk periode {$request->month}/{$request->year} ({$message})",
+                'old_values' => null,
+                'new_values' => [
+                    'month' => $request->month,
+                    'year' => $request->year,
+                    'overwrite' => $overwrite,
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount
+                ],
+                'ip_address' => request()->ip(),
+            ]);
+
             \Log::info('Salary Import completed', [
                 'success' => $successCount,
                 'errors' => $errorCount,
@@ -725,11 +865,6 @@ class StaffKeuanganController extends Controller
                     ->with('import_errors', $errors);
             }
 
-            $message = "Import selesai! {$successCount} data berhasil diimport.";
-            if ($errorCount > 0) {
-                $message .= " {$errorCount} data gagal.";
-            }
-            
             return redirect()->route('staff.keuangan.salaries.import.form')
                 ->with('success', $message)
                 ->with('import_errors', $errorCount > 0 ? $errors : null);
@@ -782,8 +917,23 @@ class StaffKeuanganController extends Controller
         $salary->update([
             'signed_by' => $user->id,
             'signed_at' => now(),
-            'status' => 'approved',
+            'status' => 'paid',
         ]);
+
+        // Catat log ke ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update',
+            'model_type' => get_class($salary),
+            'model_id' => $salary->id,
+            'description' => "Menandatangani slip gaji pegawai '{$salary->user->name}' periode {$salary->month}/{$salary->year}",
+            'old_values' => ['status' => 'draft', 'signed_by' => null],
+            'new_values' => ['status' => 'paid', 'signed_by' => $user->id],
+            'ip_address' => request()->ip(),
+        ]);
+
+        // Kirim notifikasi ke pegawai bahwa slip gaji sudah ditandatangani
+        \App\Services\NotificationService::salarySigned($salary);
 
         return back()->with('success', 'Slip gaji berhasil ditandatangani!');
     }
@@ -804,16 +954,52 @@ class StaffKeuanganController extends Controller
             return back()->with('error', 'Anda belum upload tanda tangan. Silakan upload terlebih dahulu.');
         }
 
+        // Ambil daftar salary yang akan di-TTD untuk kirim notifikasi
+        $unsignedSalaries = Salary::where('month', $request->month)
+            ->where('year', $request->year)
+            ->whereNull('signed_by')
+            ->get();
+
         $count = Salary::where('month', $request->month)
             ->where('year', $request->year)
             ->whereNull('signed_by')
             ->update([
                 'signed_by' => $user->id,
                 'signed_at' => now(),
-                'status' => 'approved',
+                'status' => 'paid',
             ]);
 
+        // Catat log ke ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update',
+            'model_type' => Salary::class,
+            'model_id' => null,
+            'description' => "Menandatangani {$count} slip gaji secara massal untuk periode {$request->month}/{$request->year}",
+            'old_values' => null,
+            'new_values' => [
+                'month' => $request->month,
+                'year' => $request->year,
+                'signed_count' => $count
+            ],
+            'ip_address' => request()->ip(),
+        ]);
+
+        // Kirim notifikasi ke setiap pegawai
+        foreach ($unsignedSalaries as $salary) {
+            $salary->refresh(); // reload data setelah update
+            \App\Services\NotificationService::salarySigned($salary);
+        }
+
         return back()->with('success', "{$count} slip gaji berhasil ditandatangani!");
+    }
+
+    /**
+     * Halaman kelola tanda tangan
+     */
+    public function signaturePage()
+    {
+        return view('staff.keuangan.signature.index');
     }
 
     /**
@@ -827,13 +1013,25 @@ class StaffKeuanganController extends Controller
 
         $user = auth()->user();
 
-        // Delete old signature if exists
+        // Hapus tanda tangan lama jika ada
         if ($user->signature) {
             \Storage::disk('public')->delete($user->signature);
         }
 
         $path = $request->file('signature')->store('signatures', 'public');
         $user->update(['signature' => $path]);
+
+        // Catat log ke ActivityLog
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update',
+            'model_type' => get_class($user),
+            'model_id' => $user->id,
+            'description' => "Mengunggah tanda tangan digital baru staff keuangan",
+            'old_values' => null,
+            'new_values' => ['signature_path' => $path],
+            'ip_address' => request()->ip(),
+        ]);
 
         return back()->with('success', 'Tanda tangan berhasil diupload!');
     }

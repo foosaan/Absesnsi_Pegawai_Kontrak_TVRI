@@ -21,7 +21,10 @@
                         <label class="block text-sm font-bold text-gray-700 mb-1">NIP</label>
                         <input type="text" name="nip" value="{{ old('nip', $user->nip) }}"
                                class="border rounded w-full py-2 px-3 text-gray-700 @error('nip') border-red-500 @enderror"
-                               placeholder="Nomor Induk Pegawai">
+                               minlength="18" maxlength="18" pattern="[0-9]{18}" 
+                               title="NIP harus 18 digit angka"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               placeholder="18 karakter angka">
                         @error('nip')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
 
@@ -45,7 +48,9 @@
                         <label class="block text-sm font-bold text-gray-700 mb-1">Password Baru (opsional)</label>
                         <input type="password" name="password"
                                class="border rounded w-full py-2 px-3 text-gray-700 @error('password') border-red-500 @enderror"
+                               minlength="8" maxlength="20"
                                placeholder="Kosongkan jika tidak ingin mengubah">
+                        <p class="text-xs text-gray-500 mt-1">8-20 karakter, huruf besar, huruf kecil, angka & simbol</p>
                         @error('password')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
 

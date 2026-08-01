@@ -41,12 +41,12 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
         switch ($this->filterType) {
             case 'day':
                 if ($this->date) {
-                    $query->whereDate('check_in_time', $this->date);
+                    $query->where('work_date', $this->date);
                 }
                 break;
             case 'month':
-                $query->whereMonth('check_in_time', $this->month)
-                      ->whereYear('check_in_time', $this->year);
+                $query->whereMonth('work_date', $this->month)
+                      ->whereYear('work_date', $this->year);
                 break;
             case 'all':
                 // No date filter — export all data
@@ -69,12 +69,12 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             'Tanggal',
             'Hari',
             'NIP',
-            'Nama Karyawan',
+            'Nama Pegawai',
             'Jabatan',
             'Bagian',
             'Shift',
-            'Check In',
-            'Check Out',
+            'Jam Masuk',
+            'Jam Pulang',
             'Status',
         ];
     }
@@ -83,10 +83,12 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     {
         $this->no++;
 
+        Carbon::setLocale('id');
+
         return [
             $this->no,
-            $attendance->check_in_time ? $attendance->check_in_time->format('d/m/Y') : '-',
-            $attendance->check_in_time ? $attendance->check_in_time->translatedFormat('l') : '-',
+            $attendance->work_date ? $attendance->work_date->format('d/m/Y') : ($attendance->check_in_time ? $attendance->check_in_time->format('d/m/Y') : '-'),
+            $attendance->work_date ? $attendance->work_date->translatedFormat('l') : ($attendance->check_in_time ? $attendance->check_in_time->translatedFormat('l') : '-'),
             $attendance->user->nip ?? '-',
             $attendance->user->name ?? '-',
             $attendance->user->jabatan ?? '-',
@@ -110,8 +112,11 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
         return match($status) {
             'present' => 'Hadir',
             'late' => 'Terlambat',
+            'left' => 'Pulang',
             'absent' => 'Tidak Hadir',
+            'cuti' => 'Cuti',
             'leave' => 'Cuti',
+            'dinas_luar' => 'Dinas Luar',
             default => $status ?? '-',
         };
     }
